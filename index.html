@@ -255,6 +255,15 @@ const F={
   n:v=>(+v||0).toLocaleString('ru-RU'),
   trend:(c,p,lbl)=>{c=+c||0;p=+p||0;if(!p)return{t:'',c:'nt'};const d=((c-p)/Math.abs(p)*100);return{t:(d>=0?'↑':'↓')+Math.abs(d).toFixed(1)+'% к '+lbl,c:d>=0?'up':'dn'}}
 };
+function parseRuDate(v){
+  if(v instanceof Date&&!isNaN(v))return v;
+  const s=String(v||'').trim();
+  const m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+  if(!m)return null;
+  const y=+m[3]<100?2000+(+m[3]):+m[3];
+  const d=new Date(y,+m[2]-1,+m[1]);
+  return isNaN(d)?null:d;
+}
 const MONTH_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const MONTH_LONG=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 function monthIndex(m){
@@ -350,7 +359,7 @@ function pi(){return pTo>0?pTo-1:null}
 function plbl(){const yr=D.year||2026;return pFrom===pTo?D.months[pFrom]+' '+yr:D.months[pFrom]+'—'+D.months[pTo]+' '+yr}
 
 // ===== DATA FETCH (Google Apps Script) =====
-let dataSource='demo';
+let dataSource='loading';
 const DATA_FIELDS=['revenue','var_costs','margin_pct','gross_margin_pct','op_margin_pct',
   'np_margin_pct','op_profit','net_profit','traffic_cost','indirect','interest',
   'ncf_op','ncf_inv','ncf_fin','dividends','cash','assets_total','equity','liabilities',
@@ -371,8 +380,8 @@ async function fetchData(){
   try{
     const url=C.DATA_PROXY;
     if(!url||url==='APPS_SCRIPT_URL_PLACEHOLDER'){
-      console.warn('Apps Script URL not configured, using demo data');
-      dataSource='demo';
+      console.warn('Apps Script URL not configured, using reserve data');
+      dataSource='reserve';
       render();hide();return;
     }
     // Apps Script Web App принимает GET с ?action=get_all
@@ -418,12 +427,12 @@ async function fetchData(){
       if(upd)upd.textContent=(acceptedFields>0?'обновлено ':'получены только сырые данные ')+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
     }else{
       console.warn('Apps Script returned error:',d.error);
-      dataSource='demo';
+      dataSource='reserve';
       document.getElementById('live-dot').classList.add('offline');
     }
   }catch(e){
-    console.warn('Apps Script unavailable, using cached/demo:',e);
-    dataSource='demo';
+    console.warn('Apps Script unavailable, using cached/reserve data:',e);
+    dataSource='reserve';
     document.getElementById('live-dot').classList.add('offline');
     const upd=document.getElementById('updated-at');
     if(upd)upd.textContent='⚠ ошибка загрузки ('+e.message.slice(0,40)+')';
@@ -495,7 +504,14 @@ document.addEventListener('click',e=>{if(!e.target.closest('.note-panel')&&!e.ta
 
 // ===== DATA SOURCE BADGE =====
 function dsBadge(src){
-  return `<div class="ds-badge ${src==='live'?'live':'demo'}">${src==='live'?'● LIVE — Google Sheets':'○ DEMO — тестовые данные'}</div>`;
+  const map={
+    live:['live','● LIVE — Google Sheets'],
+    cache:['live','◐ КЭШ — Google Sheets'],
+    loading:['live','◌ Загрузка Google Sheets'],
+    reserve:['demo','○ РЕЗЕРВ — ждёт Google Sheets']
+  };
+  const b=map[src]||map.loading;
+  return `<div class="ds-badge ${b[0]}">${b[1]}</div>`;
 }
 
 // ===== INIT =====
@@ -761,18 +777,38 @@ function renderCKP(){
 }
 
 // ===== TASKS =====
+function findTableHeader(rows, groups){
+  let best={idx:0,score:-1};
+  (rows||[]).forEach((row,idx)=>{
+    const hdr=(row||[]).map(h=>String(h||'').toLowerCase().trim());
+    let score=0;
+    groups.forEach(names=>{if(names.some(n=>hdr.some(h=>h.includes(n))))score++});
+    if(score>best.score)best={idx,score};
+  });
+  return best.score>1?best.idx:0;
+}
 function renderTasks(){
   let html=`<div class="asec" data-reveal><h3>✅ Свод по задачам</h3>`;
   if(D.tasks_data&&Array.isArray(D.tasks_data)&&D.tasks_data.length>1){
     const rows=D.tasks_data;
-    // Ищем индексы по НАЗВАНИЮ заголовка, а не по позиции (защита от перестановки столбцов)
-    const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());
+    const headerIdx=findTableHeader(rows,[
+      ['задач','наименов','название','task','name'],
+      ['статус','status','состо'],
+      ['ответств','owner','исполн','сотрудн'],
+      ['срок','дедлайн','deadline','план','дата план']
+    ]);
+    // Ищем индексы по НАЗВАНИЮ заголовка, а не по позиции (защита от перестановки столбцов и служебных строк сверху)
+    const hdr=rows[headerIdx].map(h=>String(h||'').toLowerCase().trim());
     const ci=(names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i;}return-1};
     const iName=ci(['задач','наименов','название','task','name']);
     const iStat=ci(['статус','status','состо']);
     const iOwn=ci(['ответств','owner','исполн','сотрудн']);
-    const iDead=ci(['срок','дедлайн','deadline','план']);
-    const dataRows=rows.slice(1).filter(r=>r.some(c=>c!==''&&c!==null&&c!==undefined));
+    const iDead=ci(['дата план','срок','дедлайн','deadline','план']);
+    const iFact=ci(['дата факт','факт']);
+    const dataRows=rows.slice(headerIdx+1).filter(r=>{
+      const name=(iName>=0?r[iName]:r[0]);
+      return String(name||'').trim()&&r.some(c=>c!==''&&c!==null&&c!==undefined);
+    });
     html+=`<div style="margin-bottom:12px">`;
     dataRows.slice(0,50).forEach(r=>{
       const name=(iName>=0?r[iName]:r[0])||'—';
@@ -781,6 +817,7 @@ function renderTasks(){
       if(rawSt.includes('выполн')||rawSt.includes('done')||rawSt.includes('завер')||rawSt.includes('готов'))cls='done',lbl='Выполнено';
       else if(rawSt.includes('работ')||rawSt.includes('wip')||rawSt.includes('прогресс')||rawSt.includes('в процесс'))cls='wip',lbl='В работе';
       else if(rawSt.includes('просроч')||rawSt.includes('late')||rawSt.includes('задерж')||rawSt.includes('перенос'))cls='late',lbl='Просрочено';
+      else if(iDead>=0&&!r[iFact]&&parseRuDate(r[iDead])&&parseRuDate(r[iDead])<new Date())cls='late',lbl='Просрочено';
       const owner=iOwn>=0?r[iOwn]:'';
       const dead=iDead>=0?r[iDead]:'';
       html+=`<div class="task-item"><span class="task-status ${cls}">${lbl}</span><span class="pay-name">${name}</span>${owner?`<span style="font-size:10px;color:var(--text-dim);margin-left:8px">${owner}</span>`:''}${dead?`<span style="font-size:10px;color:var(--accent-dim);margin-left:8px">${dead}</span>`:''}</div>`;
@@ -789,7 +826,7 @@ function renderTasks(){
     html+=`</div>`;
     // Сводная диаграмма статусов
     const stats={done:0,wip:0,late:0,todo:0};
-    dataRows.forEach(r=>{const s=String(iStat>=0?r[iStat]:r[2]||'').toLowerCase();if(s.includes('выполн')||s.includes('done')||s.includes('завер')||s.includes('готов'))stats.done++;else if(s.includes('работ')||s.includes('wip')||s.includes('прогресс'))stats.wip++;else if(s.includes('просроч')||s.includes('late'))stats.late++;else stats.todo++;});
+    dataRows.forEach(r=>{const s=String(iStat>=0?r[iStat]:r[2]||'').toLowerCase();if(s.includes('выполн')||s.includes('done')||s.includes('завер')||s.includes('готов'))stats.done++;else if(s.includes('просроч')||s.includes('late')||(iDead>=0&&!r[iFact]&&parseRuDate(r[iDead])&&parseRuDate(r[iDead])<new Date()))stats.late++;else if(s.includes('работ')||s.includes('wip')||s.includes('прогресс'))stats.wip++;else stats.todo++;});
     html+=`</div><div class="card" style="max-width:360px;margin-top:16px" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Статусы задач</div><div class="cw short"><canvas id="c-tasks-status"></canvas></div></div>`;
     document.getElementById('p-tasks').innerHTML=html;
     mc('c-tasks-status',{type:'doughnut',data:{labels:['Выполнено '+stats.done,'В работе '+stats.wip,'Просрочено '+stats.late,'Не начато '+stats.todo],datasets:[{data:[stats.done,stats.wip,stats.late,stats.todo],backgroundColor:['rgba(52,211,153,.5)','rgba(251,146,60,.5)','rgba(248,113,113,.5)','rgba(100,116,139,.3)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}}},cutout:'50%'}});

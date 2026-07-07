@@ -255,6 +255,23 @@ const F={
   n:v=>(+v||0).toLocaleString('ru-RU'),
   trend:(c,p,lbl)=>{c=+c||0;p=+p||0;if(!p)return{t:'',c:'nt'};const d=((c-p)/Math.abs(p)*100);return{t:(d>=0?'↑':'↓')+Math.abs(d).toFixed(1)+'% к '+lbl,c:d>=0?'up':'dn'}}
 };
+const MONTH_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const MONTH_LONG=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function monthIndex(m){
+  const s=String(m||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9]/g,'');
+  if(!s)return -1;
+  const num=parseInt(s,10);
+  if(Number.isFinite(num)&&num>=1&&num<=12)return num-1;
+  return ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'].findIndex(x=>s.startsWith(x));
+}
+function sanitizeMonths(months){
+  const out=[],seen=new Set();
+  (months||[]).forEach(m=>{
+    const idx=monthIndex(m);
+    if(idx>=0&&!seen.has(idx)){seen.add(idx);out.push(MONTH_SHORT[idx])}
+  });
+  return out.length?out:MONTH_SHORT.slice();
+}
 
 // ===== DATA STORE =====
 let D={
@@ -371,7 +388,7 @@ async function fetchData(){
           acceptedFields++;
         }
       });
-      if(Array.isArray(d.months)&&d.months.length>0&&acceptedFields>0)D.months=d.months;
+      if(Array.isArray(d.months)&&d.months.length>0&&acceptedFields>0)D.months=sanitizeMonths(d.months);
       if(d.year)D.year=d.year;
       // Метаданные
       if(d.threshold_rules&&d.threshold_rules.length)D.thresholds=d.threshold_rules;
@@ -423,11 +440,10 @@ async function fetchAI(){
 }
 
 function updatePeriodSelectors(){
-  const months=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
   ['pFrom','pTo'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
-    sel.innerHTML=D.months.map((m,i)=>`<option value="${i}">${months[i]||m}</option>`).join('');
+    sel.innerHTML=D.months.map((m,i)=>`<option value="${i}">${MONTH_LONG[monthIndex(m)]||m}</option>`).join('');
   });
   document.getElementById('pFrom').value=0;
   document.getElementById('pTo').value=D.months.length-1;

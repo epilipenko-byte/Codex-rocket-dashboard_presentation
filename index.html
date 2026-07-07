@@ -264,12 +264,16 @@ function monthIndex(m){
   if(Number.isFinite(num)&&num>=1&&num<=12)return num-1;
   return ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'].findIndex(x=>s.startsWith(x));
 }
-function sanitizeMonths(months){
-  const out=[],seen=new Set();
-  (months||[]).forEach(m=>{
+function monthOrder(months){
+  const seen=new Set(),items=[];
+  (months||[]).forEach((m,old)=>{
     const idx=monthIndex(m);
-    if(idx>=0&&!seen.has(idx)){seen.add(idx);out.push(MONTH_SHORT[idx])}
+    if(idx>=0&&!seen.has(idx)){seen.add(idx);items.push({old,idx})}
   });
+  return items.sort((a,b)=>a.idx-b.idx);
+}
+function sanitizeMonths(months){
+  const out=monthOrder(months).map(m=>MONTH_SHORT[m.idx]);
   return out.length?out:MONTH_SHORT.slice();
 }
 
@@ -381,10 +385,11 @@ async function fetchData(){
       // Мержим только непустые числовые поля, чтобы сырой/старый прокси не затирал графики нулями.
       const fields=DATA_FIELDS;
       let acceptedFields=0;
+      const sourceMonthOrder=Array.isArray(d.months)?monthOrder(d.months):[];
       if(d.year)D.year=d.year;
       fields.forEach(f=>{
         if(Array.isArray(d[f])&&d[f].length>0&&d[f].some(v=>Number.isFinite(+v)&&Math.abs(+v)>0.000001)){
-          D[f]=d[f].map(v=>+v||0);
+          D[f]=sourceMonthOrder.length?sourceMonthOrder.map(m=>+d[f][m.old]||0):d[f].map(v=>+v||0);
           acceptedFields++;
         }
       });

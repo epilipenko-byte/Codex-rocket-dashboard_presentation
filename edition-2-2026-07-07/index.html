@@ -339,16 +339,15 @@ function buildSourceTimeline(d){
     }
     return filtered.sort((a,b)=>a.key.localeCompare(b.key));
   }
-  const core=['revenue','net_profit','op_profit','traffic_cost'];
-  let usefulPrefix=0;
-  while(usefulPrefix<months.length&&usefulAt(d,usefulPrefix,core))usefulPrefix++;
-  if(months.length>12&&usefulPrefix>=2){
-    return Array.from({length:Math.min(usefulPrefix,12)},(_,old)=>({old,idx:old,label:MONTH_SHORT[old],key:'legacy-fin-'+old,year:D.year||2026}));
-  }
   const seen=new Set(),items=[];
   months.forEach((label,old)=>{
     const idx=monthIndex(label);
-    if(idx>=0&&!seen.has(idx)){seen.add(idx);items.push({old,idx,label:MONTH_SHORT[idx],key:'legacy-'+idx,year:D.year||2026})}
+    if(idx<0||seen.has(idx))return;
+    // Старый proxy иногда отдает "Дек, Янв, Фев..." — первый Дек относится к прошлому году.
+    if(old===0&&idx===11&&monthIndex(months[1])===0)return;
+    seen.add(idx);
+    const year=D.year||d.year||2026;
+    items.push({old,idx,label:MONTH_SHORT[idx],key:`${year}-${String(idx+1).padStart(2,'0')}`,year});
   });
   return items.sort((a,b)=>a.idx-b.idx);
 }
@@ -464,7 +463,9 @@ function normalizeData(){
   }
 }
 async function fetchData(){
-  show('Загрузка данных из Google Sheets...');
+  const hadCache=dataSource==='cache';
+  if(!hadCache)show('Загрузка данных из Google Sheets...');
+  else setStatus('обновляю Google Sheets...');
   try{
     const url=C.DATA_PROXY;
     if(!url||url==='APPS_SCRIPT_URL_PLACEHOLDER'){
@@ -472,12 +473,7 @@ async function fetchData(){
       dataSource='reserve';
       render();hide();return;
     }
-    // Apps Script Web App принимает GET с ?action=get_all
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),90000);
-    const r=await fetch(url+'?action=get_all&client=codex',{method:'GET',signal:controller.signal});
-    clearTimeout(timeout);
-    const d=await r.json();
+    const d=await fetchProxyJson(url);
     if(d&&d.ok){
       // Мержим только непустые числовые поля, чтобы сырой/старый прокси не затирал графики нулями.
       const fields=DATA_FIELDS;
@@ -516,22 +512,56 @@ async function fetchData(){
       localStorage.setItem('rocket_data',JSON.stringify(D));
       localStorage.setItem('rocket_updated',new Date().toISOString());
       document.getElementById('live-dot').classList.toggle('offline',acceptedFields===0);
-      const upd=document.getElementById('updated-at');
-      if(upd)upd.textContent=(acceptedFields>0?'обновлено ':'получены только сырые данные ')+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      setStatus((acceptedFields>0?'обновлено ':'получены только сырые данные ')+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}));
     }else{
       console.warn('Apps Script returned error:',d.error);
       dataSource='reserve';
       document.getElementById('live-dot').classList.add('offline');
+      setStatus('⚠ proxy: '+String(d&&d.error||'ошибка').slice(0,70));
     }
   }catch(e){
     console.warn('Apps Script unavailable, using cached/reserve data:',e);
     dataSource=dataSource==='cache'?'cache':'reserve';
     document.getElementById('live-dot').classList.add('offline');
-    const upd=document.getElementById('updated-at');
-    if(upd)upd.textContent='⚠ ошибка загрузки ('+e.message.slice(0,40)+')';
+    setStatus('⚠ '+humanLoadError(e));
   }
   normalizeData();
   try{render()}finally{hide()}
+}
+
+function setStatus(text){
+  const upd=document.getElementById('updated-at');
+  if(upd)upd.textContent=text;
+}
+function humanLoadError(e){
+  const msg=String(e&&e.message||e||'ошибка загрузки');
+  if(msg.includes('<!DOCTYPE')||msg.includes('HTML'))return 'proxy вернул HTML, нужен deploy Apps Script';
+  if(msg.includes('aborted')||msg.includes('Abort'))return 'proxy не ответил вовремя';
+  return 'ошибка загрузки ('+msg.slice(0,60)+')';
+}
+async function fetchProxyJson(baseUrl){
+  const attempts=[
+    baseUrl+'?action=get_all&_='+Date.now(),
+    baseUrl+'?_='+Date.now()
+  ];
+  let lastErr=null;
+  for(const requestUrl of attempts){
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),30000);
+    try{
+      const r=await fetch(requestUrl,{method:'GET',cache:'no-store',signal:controller.signal});
+      const text=await r.text();
+      if(!r.ok)throw new Error('HTTP '+r.status+' '+text.slice(0,120));
+      const trimmed=text.trim();
+      if(trimmed.startsWith('<'))throw new Error('HTML response: '+trimmed.slice(0,80));
+      return JSON.parse(trimmed);
+    }catch(err){
+      lastErr=err;
+    }finally{
+      clearTimeout(timeout);
+    }
+  }
+  throw lastErr||new Error('proxy unavailable');
 }
 
 async function fetchAI(){
@@ -552,9 +582,21 @@ function updatePeriodSelectors(){
     if(!sel)return;
     sel.innerHTML=D.months.map((m,i)=>`<option value="${i}">${MONTH_LONG[monthIndex(m)]||m}</option>`).join('');
   });
-  document.getElementById('pFrom').value=0;
-  document.getElementById('pTo').value=D.months.length-1;
-  pFrom=0;pTo=D.months.length-1;
+  const useful=defaultUsefulRange();
+  document.getElementById('pFrom').value=useful.from;
+  document.getElementById('pTo').value=useful.to;
+  pFrom=useful.from;pTo=useful.to;
+}
+
+function defaultUsefulRange(){
+  // Cash is a balance snapshot and may be copied into future months; do not let it extend the default period.
+  const fields=['revenue','net_profit','op_profit','total_ncf'];
+  const idxs=[];
+  for(let i=0;i<(D.months||[]).length;i++){
+    if(fields.some(f=>Array.isArray(D[f])&&Number.isFinite(+D[f][i])&&Math.abs(+D[f][i])>0.000001))idxs.push(i);
+  }
+  if(!idxs.length)return{from:0,to:Math.max(0,(D.months||[]).length-1)};
+  return{from:idxs[0],to:idxs[idxs.length-1]};
 }
 
 function show(t){document.getElementById('ld-txt').textContent=t;document.getElementById('ld').classList.add('on')}
@@ -615,7 +657,7 @@ function init(){
     const upd=localStorage.getItem('rocket_updated');
     if(upd){const el=document.getElementById('updated-at');if(el)el.textContent='кэш '+new Date(upd).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}
   }catch(e){}
-  buildTabs();render();
+  buildTabs();updatePeriodSelectors();render();
   if(!C.DEMO&&C.DATA_PROXY!=='APPS_SCRIPT_URL_PLACEHOLDER')fetchData();
 }
 

@@ -19,9 +19,11 @@
 --cyan:#06b6d4;
 }
 *{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#000}
 body{font-family:'Outfit',sans-serif;background:transparent;color:var(--text);min-height:100vh}
+#grass-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;border:none;pointer-events:none}
 /* AUTH */
-#auth{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 20%,rgba(167,139,250,.04) 0%,transparent 60%),var(--bg)}
+#auth{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 20%,rgba(167,139,250,.04) 0%,transparent 60%),rgba(10,14,23,.82)}
 .auth-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:380px;text-align:center}
 .auth-box h2{font-family:'Outfit',sans-serif;font-weight:800;font-size:28px;color:var(--accent);margin-bottom:8px}
 .auth-box p{font-size:12px;color:var(--text-dim);margin-bottom:24px;letter-spacing:1px}
@@ -31,7 +33,7 @@ body{font-family:'Outfit',sans-serif;background:transparent;color:var(--text);mi
 .auth-box button:hover{background:rgba(167,139,250,.35)}
 .auth-err{color:var(--red);font-size:11px;margin-top:6px;display:none}
 /* MAIN */
-#app{display:none}
+#app{position:relative;z-index:2;display:none;min-height:100vh}
 .hdr{padding:18px 32px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;background:rgba(10,14,23,.93)}
 .hdr-left{display:flex;align-items:center;gap:14px}
 .hdr h1{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;display:flex;align-items:baseline;gap:4px}
@@ -158,7 +160,7 @@ table.dt tr:hover td{background:rgba(167,139,250,.03)}
 </style>
 </head>
 <body>
-<iframe id="grass-bg" src="grass_bg.html" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;border:none;pointer-events:none"></iframe>
+<iframe id="grass-bg" src="grass_bg.html"></iframe>
 <div class="pbar" id="pbar"></div>
 <!-- AUTH -->
 <div id="auth">

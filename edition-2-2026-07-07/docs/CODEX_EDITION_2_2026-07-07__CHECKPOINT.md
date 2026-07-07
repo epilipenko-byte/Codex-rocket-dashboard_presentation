@@ -1,6 +1,6 @@
 # CODEX_EDITION_2_2026-07-07 — checkpoint
 
-Статус: Edition 2 опубликована на GitHub Pages; Apps Script proxy Edition 2 развернут; фронт переключен на новый proxy и проверяется на живой загрузке.
+Статус: Edition 2 опубликована на GitHub Pages; Apps Script proxy Edition 2 развернут; фронт переключен на новый JSONP proxy; живая загрузка проверена, но полный ответ proxy может занимать около 1-2 минут.
 
 ## Локально готово
 
@@ -13,6 +13,7 @@
   - вкладки `Проекты Rocket`, `Ludens Group`, `Тех. лист`;
   - `Задачи` объединены с `Результаты`;
   - маржинальности в обзоре и P&L берутся как source-percent rows / fallback;
+  - процентные строки источника нормализуются: если Google Sheets отдает `0.37`, фронт показывает `37%`, а не `0.37%`;
   - cash показывается как `period_end`;
   - P&L waterfall исправлен по знакам;
   - расходы сгруппированы;
@@ -29,7 +30,8 @@
 - Apps Script proxy JSONP deployment:
   `https://script.google.com/macros/s/AKfycbxKamFtHfX6VZZE2OcVkaPgHHygP8Ck0Pt9SrLYZeBHXDQi5Qqi-rU5dchVw2opZkAq/exec`
 - Проверка proxy: HTTP `200`, возвращает `month_keys`, `total_ncf`, `tech_sheet`, `metric_diagnostics`; JSONP callback проверен через `callback=cbtest`.
-- Время ответа proxy при полной живой сборке: около 60 секунд, поэтому фронт использует timeout 75 секунд и не блокирует экран, если есть кэш.
+- Время ответа proxy при полной живой сборке: около 60-110 секунд, поэтому фронт использует JSONP, быстро показывает кэш при наличии локального снимка и не блокирует экран.
+- Проверка опубликованной страницы после JSONP: бейдж переключается с `КЭШ — Google Sheets` на `LIVE — Google Sheets`, период по умолчанию `Янв—Июн 2026`.
 - Синтаксис `index.html` JavaScript и `apps_script_proxy.js` проверен.
 - Локальный preview screenshot:
   `work/rocket-dashboard/edition2-local-overview.png`
@@ -139,3 +141,4 @@ GitHub web upload открыт в Chrome по адресу:
    - `dashboard_links`;
    - `speaker_notes`;
    - `tech_sheet`.
+2. После следующей публикации проверить, что маржинальности на карточках и во вкладке ОПиУ отображаются в нормальном процентном масштабе, а не как доли процента.

@@ -48,7 +48,8 @@ https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/
 | Ресурс | Ссылка / путь |
 |---|---|
 | Dashboard Config | https://docs.google.com/spreadsheets/d/1EKR-czK1UvXZDIJUe5MLb70yZXyEMe1VIYTx15UOY3E |
-| Edition 1 Apps Script proxy | https://script.google.com/macros/s/AKfycbxHphPAsDe6o2vvhgjmZx51CZ151J1pvuc93QxjT8hfKuAHzcVcIvKdwOAIKQBYluSl/exec |
+| Edition 2 Apps Script proxy | https://script.google.com/macros/s/AKfycbxa4ve0qdXhWoXN5Dyr6vbSXM5HLESj8XFqcvfVdfxEA8J0eIy0lUguIb5YN1iqNyVo/exec |
+| Edition 1 / old Apps Script proxy | https://script.google.com/macros/s/AKfycbxHphPAsDe6o2vvhgjmZx51CZ151J1pvuc93QxjT8hfKuAHzcVcIvKdwOAIKQBYluSl/exec |
 | Внедренность инструментов | https://script.google.com/macros/s/AKfycbwxYcEODuv8V9XIuXpyJ6giQOE8pXpHZITkznxqzTSuLef4HYlY1eHdwaBOvAvO8Sbh/exec |
 | Тайм-менеджмент / выполнение задач | https://script.google.com/a/macros/rocketpeople.tech/s/AKfycbxTers8chtwgwkIh5cDNJI-9McA6Rj0GPSywQey0g3ygKqKSTaB9ZS8P2e5s7nopzWa/exec |
 

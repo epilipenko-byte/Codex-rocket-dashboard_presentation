@@ -1,6 +1,6 @@
 # CODEX_EDITION_2_2026-07-07 — checkpoint
 
-Статус: Edition 2 опубликована на GitHub Pages; фронт проверен по опубликованной ссылке. Осталось развернуть обновленный Apps Script proxy, чтобы все новые поля Edition 2 приходили из живого proxy.
+Статус: Edition 2 опубликована на GitHub Pages; Apps Script proxy Edition 2 развернут; фронт переключен на новый proxy и проверяется на живой загрузке.
 
 ## Локально готово
 
@@ -26,6 +26,10 @@
   - `speaker_notes`;
   - `tech_sheet`;
   - `write_speaker_note`.
+- Apps Script proxy развернут как новое web app deployment:
+  `https://script.google.com/macros/s/AKfycbxa4ve0qdXhWoXN5Dyr6vbSXM5HLESj8XFqcvfVdfxEA8J0eIy0lUguIb5YN1iqNyVo/exec`
+- Проверка proxy: HTTP `200`, возвращает `month_keys`, `total_ncf`, `tech_sheet`, `metric_diagnostics`.
+- Время ответа proxy при полной живой сборке: около 60 секунд, поэтому фронт использует timeout 75 секунд и не блокирует экран, если есть кэш.
 - Синтаксис `index.html` JavaScript и `apps_script_proxy.js` проверен.
 - Локальный preview screenshot:
   `work/rocket-dashboard/edition2-local-overview.png`
@@ -120,7 +124,7 @@ GitHub web upload открыт в Chrome по адресу:
 - Отдельная публикация с `edition-2` и датой в имени: готово.
 - Полный пакет Markdown-документации в GitHub: готово.
 - Исходные Word-ТЗ в GitHub `docs/source`: готово.
-- Обновленный Apps Script proxy.
+- Обновленный Apps Script proxy: готово.
 - Обновленный фронт: готово.
 - Проверенный пароль `password`: готово.
 - Проверенные периоды.
@@ -128,8 +132,7 @@ GitHub web upload открыт в Chrome по адресу:
 
 ## Что осталось
 
-1. Развернуть обновленный `apps_script_proxy.js` в Google Apps Script для Edition 2.
-2. Проверить живые данные после обновления proxy:
+1. Проверить живые данные после обновления proxy:
    - `month_keys`;
    - `margin_pct/op_margin_pct/np_margin_pct`;
    - `total_ncf`;

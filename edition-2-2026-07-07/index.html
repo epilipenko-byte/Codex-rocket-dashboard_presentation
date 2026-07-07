@@ -441,6 +441,7 @@ const DATA_FIELDS=['revenue','var_costs','margin_pct','gross_margin_pct','op_mar
   'rev_mannequin','tr_fb','tr_tg','tr_teasers','tr_influence','tr_pp','tr_google',
   'ftd_old','ftd_new','ftd_total','crm_rev','crm_pct'];
 const COST_FIELDS=['var_costs','traffic_cost','indirect','interest','dividends'];
+const PERCENT_FIELDS=['margin_pct','gross_margin_pct','op_margin_pct','np_margin_pct','crm_pct'];
 function usefulSeries(a){return Array.isArray(a)&&a.some(v=>Number.isFinite(+v)&&Math.abs(+v)>0.000001)}
 function normalizeData(){
   const n=Math.max(1,(D.months||[]).length);
@@ -449,6 +450,9 @@ function normalizeData(){
     if(!Array.isArray(D[f]))D[f]=[];
     D[f]=D[f].slice(0,n).map(v=>+v||0);
     if(COST_FIELDS.includes(f))D[f]=D[f].map(v=>Math.abs(v));
+    if(PERCENT_FIELDS.includes(f)&&D[f].some(v=>Math.abs(v)>0.000001)&&Math.max(...D[f].map(v=>Math.abs(v)))<=1.5){
+      D[f]=D[f].map(v=>+(v*100).toFixed(2));
+    }
     while(D[f].length<n)D[f].push(0);
   });
   if(!hadGross&&D.revenue.some(v=>v>0)&&D.var_costs.some(v=>v>0)){

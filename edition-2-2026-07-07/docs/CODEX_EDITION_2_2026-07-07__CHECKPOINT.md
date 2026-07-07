@@ -56,6 +56,11 @@ Commit message:
 
 `Add Edition 2 dashboard 2026-07-07`
 
+Documentation commits:
+
+- `854b525` — `Add Edition 2 documentation package`, uploaded Markdown handoff package to `edition-2-2026-07-07/docs/`.
+- `c3faf07` — `Add Edition 2 source requirements docs`, uploaded source Word TZ documents to `edition-2-2026-07-07/docs/source/`.
+
 Проверка опубликованной страницы:
 
 - HTTP status: `200`
@@ -65,7 +70,9 @@ Commit message:
 - вкладки `ПРОЕКТЫ ROCKET`, `LUDENS GROUP`, `РЕЗУЛЬТАТЫ`, `ТЕХ. ЛИСТ` отображаются;
 - пользовательский интерфейс не показывает слово `Codex`.
 
-Дата проверки: `2026-07-08 00:31 +03`.
+Дата проверки сайта: `2026-07-08 00:31 +03`.
+
+Дата проверки полного GitHub-пакета: `2026-07-08 00:36 +03`.
 
 ## История публикации
 
@@ -111,6 +118,8 @@ GitHub web upload открыт в Chrome по адресу:
 
 - Отдельная GitHub Pages ссылка Edition 2: готово.
 - Отдельная публикация с `edition-2` и датой в имени: готово.
+- Полный пакет Markdown-документации в GitHub: готово.
+- Исходные Word-ТЗ в GitHub `docs/source`: готово.
 - Обновленный Apps Script proxy.
 - Обновленный фронт: готово.
 - Проверенный пароль `password`: готово.

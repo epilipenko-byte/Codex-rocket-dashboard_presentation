@@ -22,7 +22,12 @@ Commit message:
 
 `Add Edition 2 dashboard 2026-07-07`
 
-Проверено: `2026-07-08 00:31 +03`.
+Documentation commits:
+
+- `854b525` — Markdown package uploaded to `edition-2-2026-07-07/docs/`.
+- `c3faf07` — source Word TZ documents uploaded to `edition-2-2026-07-07/docs/source/`.
+
+Проверено: `2026-07-08 00:36 +03`.
 
 Готовый zip для GitHub web upload:
 

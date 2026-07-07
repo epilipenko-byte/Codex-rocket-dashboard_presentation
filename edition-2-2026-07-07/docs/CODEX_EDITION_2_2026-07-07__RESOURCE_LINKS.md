@@ -14,7 +14,7 @@ GitHub repository:
 
 `epilipenko-byte/Codex-rocket-dashboard_presentation`
 
-GitHub commit:
+Initial Edition 2 dashboard commit:
 
 `3e5177ee124ff1bc9093c68d47158e334b7226fb`
 
@@ -27,7 +27,12 @@ Documentation commits:
 - `854b525` — Markdown package uploaded to `edition-2-2026-07-07/docs/`.
 - `c3faf07` — source Word TZ documents uploaded to `edition-2-2026-07-07/docs/source/`.
 
-Проверено: `2026-07-08 00:36 +03`.
+Live loading / Apps Script fixes:
+
+- `5c6f0f7` — published frontend percent normalization fix for Edition 2.
+- `e64c0f9` — published documentation update for live loading / cache behavior.
+
+Проверено после live-loading исправлений: `2026-07-08 02:21 +03`.
 
 Готовый zip для GitHub web upload:
 

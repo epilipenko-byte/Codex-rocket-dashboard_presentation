@@ -200,6 +200,7 @@ const METRICS = {
 
 function doGet(e) {
   const action = String((e && e.parameter && e.parameter.action) || 'get_all');
+  const callback = String((e && e.parameter && e.parameter.callback) || '');
   let result;
   try {
     if (['get_all', 'getData', 'get_data'].indexOf(action) >= 0) result = getAllData();
@@ -208,7 +209,7 @@ function doGet(e) {
   } catch (err) {
     result = { ok: false, error: err.message, stack: err.stack };
   }
-  return jsonOut(result);
+  return jsonOut(result, callback);
 }
 
 function doPost(e) {
@@ -228,9 +229,15 @@ function doPost(e) {
   return jsonOut(result);
 }
 
-function jsonOut(obj) {
+function jsonOut(obj, callback) {
+  const json = JSON.stringify(obj);
+  if (callback && /^[A-Za-z_$][0-9A-Za-z_$]*(\.[A-Za-z_$][0-9A-Za-z_$]*)*$/.test(callback)) {
+    return ContentService
+      .createTextOutput(callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
-    .createTextOutput(JSON.stringify(obj))
+    .createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }
 

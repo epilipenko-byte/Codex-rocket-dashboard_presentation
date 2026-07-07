@@ -235,7 +235,7 @@ table.dt tr:hover td{background:rgba(167,139,250,.03)}
 // DATA_PROXY_URL: вставьте URL вашего Google Apps Script Web App
 // Получить: Расширения → Apps Script → Развернуть → Веб-приложение → Скопировать URL
 const C={
-  DATA_PROXY:'https://script.google.com/macros/s/AKfycbxa4ve0qdXhWoXN5Dyr6vbSXM5HLESj8XFqcvfVdfxEA8J0eIy0lUguIb5YN1iqNyVo/exec',   // Apps Script Web App Edition 2
+  DATA_PROXY:'https://script.google.com/macros/s/AKfycbxKamFtHfX6VZZE2OcVkaPgHHygP8Ck0Pt9SrLYZeBHXDQi5Qqi-rU5dchVw2opZkAq/exec',   // Apps Script Web App Edition 2 JSONP
   AI:'WEBHOOK_AI_ANALYSIS_URL',               // ← Make.com AI Analysis webhook (опционально)
   TOOLS:'https://script.google.com/macros/s/AKfycbwxYcEODuv8V9XIuXpyJ6giQOE8pXpHZITkznxqzTSuLef4HYlY1eHdwaBOvAvO8Sbh/exec',
   PWD_HASH:'5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
@@ -567,6 +567,11 @@ function humanLoadError(e){
   return 'ошибка загрузки ('+msg.slice(0,60)+')';
 }
 async function fetchProxyJson(baseUrl){
+  try{
+    return await fetchProxyJsonp(baseUrl+'?action=get_all&_='+Date.now());
+  }catch(jsonpErr){
+    console.warn('JSONP proxy load failed, trying fetch:',jsonpErr);
+  }
   const attempts=[
     baseUrl+'?action=get_all&_='+Date.now(),
     baseUrl+'?_='+Date.now()
@@ -589,6 +594,26 @@ async function fetchProxyJson(baseUrl){
     }
   }
   throw lastErr||new Error('proxy unavailable');
+}
+function fetchProxyJsonp(requestUrl){
+  return new Promise((resolve,reject)=>{
+    const callback='__rocketProxyCb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+    const sep=requestUrl.includes('?')?'&':'?';
+    const script=document.createElement('script');
+    const timeout=setTimeout(()=>{
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    },75000);
+    function cleanup(){
+      clearTimeout(timeout);
+      try{delete window[callback]}catch(e){window[callback]=undefined}
+      if(script.parentNode)script.parentNode.removeChild(script);
+    }
+    window[callback]=data=>{cleanup();resolve(data)};
+    script.onerror=()=>{cleanup();reject(new Error('JSONP load error'))};
+    script.src=requestUrl+sep+'callback='+encodeURIComponent(callback);
+    document.head.appendChild(script);
+  });
 }
 
 async function fetchAI(){

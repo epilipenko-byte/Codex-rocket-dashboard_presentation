@@ -462,6 +462,33 @@ function normalizeData(){
     D.np_margin_pct=D.revenue.map((r,i)=>r?+((D.net_profit[i]/r)*100).toFixed(2):0);
   }
 }
+function hasDuplicateMonths(months){
+  const seen=new Set();
+  for(const m of months||[]){
+    const idx=monthIndex(m);
+    if(idx<0)continue;
+    if(seen.has(idx))return true;
+    seen.add(idx);
+  }
+  return false;
+}
+function remapDataToTimeline(source,timeline){
+  if(!timeline.length)return false;
+  DATA_FIELDS.forEach(f=>{
+    if(Array.isArray(source[f]))source[f]=timeline.map(m=>+source[f][m.old]||0);
+  });
+  source.months=timeline.map(m=>m.label);
+  source.month_keys=timeline.map(m=>m.key);
+  return true;
+}
+function migrateCachedData(){
+  if(!Array.isArray(D.months)||!D.months.length)return;
+  if(Array.isArray(D.month_keys)&&D.month_keys.length===D.months.length&&!hasDuplicateMonths(D.months))return;
+  const timeline=buildSourceTimeline(D);
+  if(remapDataToTimeline(D,timeline)){
+    localStorage.setItem('rocket_data',JSON.stringify(D));
+  }
+}
 async function fetchData(){
   const hadCache=dataSource==='cache';
   if(!hadCache)show('Загрузка данных из Google Sheets...');
@@ -654,6 +681,7 @@ function init(){
   try{
     const saved=localStorage.getItem('rocket_data');
     if(saved){Object.assign(D,JSON.parse(saved));dataSource='cache'}
+    migrateCachedData();
     const upd=localStorage.getItem('rocket_updated');
     if(upd){const el=document.getElementById('updated-at');if(el)el.textContent='кэш '+new Date(upd).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}
   }catch(e){}

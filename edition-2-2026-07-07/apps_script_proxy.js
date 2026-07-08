@@ -39,6 +39,24 @@ const GENERIC_MATCH_TOKENS = {
   'total': true, 'всего': true, 'прибыль': true, 'profit': true
 };
 
+const METRIC_REJECT_TOKENS = {
+  margin_pct: ['валов', 'операцион', 'ebitda', 'ebitdac', 'чист', 'чп', 'net profit'],
+  gross_margin_pct: ['маржинальн', 'операцион', 'ebitda', 'ebitdac', 'чист', 'чп', 'net profit'],
+  op_margin_pct: ['валов', 'маржинальн доход', 'чист', 'чп', 'net profit'],
+  np_margin_pct: ['валов', 'маржинальн', 'операцион', 'ebitda', 'ebitdac', 'gross'],
+  cash: ['opening cash', 'opening balance', 'начальн', 'начальный остаток'],
+  total_ncf: ['opening cash', 'cash at end']
+};
+
+const METRIC_REQUIRED_TOKENS = {
+  op_margin_pct: ['операцион', 'ebitda', 'ebitdac'],
+  np_margin_pct: ['чист', 'чп', 'net profit'],
+  cash: ['cash at end', 'end of month', 'конец', 'конечн', 'остаток дс', 'денежные средства'],
+  total_ncf: ['total ncf', 'monthly cash change', 'общий денежный поток', 'изменение денег за месяц общее'],
+  de_ratio: ['debt', 'equity', 'долг', 'заемн', 'заёмн', 'рычаг', 'леверидж'],
+  assets_total: ['assets', 'актив']
+};
+
 const METRICS = {
   revenue: [
     'выручка', 'итого выручка', 'общая выручка', 'revenue', 'total revenue',
@@ -57,10 +75,12 @@ const METRICS = {
   ],
   op_margin_pct: [
     'рентабельность по операционной прибыли', 'рентабельность по ebitda',
+    'рентабельность по ebitcac', 'ebitcac margin',
     'operating margin', 'ebitda margin'
   ],
   np_margin_pct: [
-    'рентабельность по чп', 'рентабельность по чистой прибыли',
+    'рентабельность по чп', 'рентабельность по чп общая',
+    'рентабельность по чистой прибыли', 'рентабельность чистая прибыль',
     'net profit margin', 'np margin'
   ],
   traffic_cost: [
@@ -85,30 +105,33 @@ const METRICS = {
   ],
   ncf_op: [
     'ncf операционный', 'операционный денежный поток', 'поток от операционной',
-    'cash flow operating', 'операционная деятельность'
+    'cash flow operating', 'операционная деятельность', 'ncf операционная деятельность'
   ],
   ncf_inv: [
     'ncf инвестиционный', 'инвестиционный денежный поток', 'поток от инвестиционной',
-    'cash flow investing', 'инвестиционная деятельность'
+    'cash flow investing', 'инвестиционная деятельность', 'ncf инвестиционная деятельность'
   ],
   ncf_fin: [
     'ncf финансовый', 'финансовый денежный поток', 'поток от финансовой',
-    'cash flow financing', 'финансовая деятельность'
+    'cash flow financing', 'финансовая деятельность', 'ncf финансовая деятельность'
   ],
   total_ncf: [
     'total ncf monthly cash change', 'total ncf', 'общий денежный поток',
-    'итого денежный поток', 'monthly cash change'
+    'итого денежный поток', 'monthly cash change',
+    'total monthly cash change', 'ncf изменение денег за месяц общее',
+    'изменение денег за месяц общее'
   ],
   dividends: [
     'дивиденды', 'дивиденты', 'dividends', 'выплата дивидендов'
   ],
   cash: [
     'остаток дс', 'остаток денежных средств', 'конечный остаток',
-    'cash balance', 'денежные средства', 'деньги на конец'
+    'cash balance', 'денежные средства', 'деньги на конец',
+    'cash at end of month', 'ending cash balance'
   ],
   assets_total: [
-    'активы всего', 'итого активы', 'валюта баланса', 'total assets',
-    'assets total'
+    'активы всего', 'итого активы', 'total assets',
+    'assets total', 'assets', 'активы'
   ],
   equity: [
     'собственный капитал', 'капитал', 'equity', 'own capital'
@@ -139,7 +162,9 @@ const METRICS = {
   ],
   de_ratio: [
     'd/e', 'de ratio', 'debt equity', 'долг капитал', 'долг к капиталу',
-    'заемный капитал собственный капитал'
+    'заемный капитал собственный капитал', 'заёмный капитал собственный капитал',
+    'финансовый рычаг заемный капитал', 'финансовый рычаг заёмный капитал',
+    'debt to equity ratio'
   ],
   dfl: [
     'dfl', 'эффект финансового рычага', 'финансовый рычаг'
@@ -295,7 +320,8 @@ function createEmptyPayload() {
   Object.keys(METRICS).forEach(k => out[k] = []);
   [
     'margin_pct','gross_margin_pct','op_margin_pct','np_margin_pct',
-    'pnl_combo','pnl_consol','model_data','payment_data','tasks_data','ckp_data'
+    'pnl_combo','pnl_consol','model_data','payment_data','payment_plan_data',
+    'dds_data','dds_operations_data','balance_data','traffic_data','tasks_data','ckp_data'
   ].forEach(k => out[k] = Array.isArray(out[k]) ? out[k] : null);
   out.threshold_rules = [];
   out.assumptions = [];
@@ -329,6 +355,8 @@ function readReport(report) {
     const context = {
       id: id || sheetName,
       report,
+      source_url: String(sheetRef || ''),
+      spreadsheet_id: extractSheetId(sheetRef),
       sheet_name: sheet.getName(),
       spreadsheet_name: ss.getName(),
       data,
@@ -340,6 +368,8 @@ function readReport(report) {
     return {
       id: id || sheetName,
       report,
+      source_url: String(sheetRef || ''),
+      spreadsheet_id: extractSheetId(sheetRef),
       sheet_name: sheetName,
       data: [],
       month_columns: [],
@@ -356,6 +386,8 @@ function attachRawDataset(out, context) {
     id: context.id,
     sheet_name: context.sheet_name,
     spreadsheet_name: context.spreadsheet_name,
+    spreadsheet_id: context.spreadsheet_id || '',
+    source_url: context.source_url || '',
     rows: raw.length,
     error: context.error || '',
     matched_metrics: Object.keys(context.metrics || {})
@@ -365,6 +397,13 @@ function attachRawDataset(out, context) {
   if (idNorm.indexOf('consol') >= 0 || idNorm.indexOf('консол') >= 0) out.pnl_consol = raw;
   if (idNorm.indexOf('model') >= 0 || idNorm.indexOf('модел') >= 0) out.model_data = raw;
   if (idNorm.indexOf('payment') >= 0 || idNorm.indexOf('плат') >= 0 || idNorm.indexOf('календар') >= 0) out.payment_data = raw;
+  if (idNorm.indexOf('плановый реестр') >= 0 || idNorm.indexOf('payment_plan') >= 0) out.payment_plan_data = raw;
+  if (idNorm.indexOf('ддс') >= 0 || idNorm.indexOf('cash flow') >= 0 || idNorm.indexOf('cashflow') >= 0) {
+    if (idNorm.indexOf('операц') >= 0 || idNorm.indexOf('кошел') >= 0 || idNorm.indexOf('operations') >= 0) out.dds_operations_data = raw;
+    else out.dds_data = raw;
+  }
+  if (idNorm.indexOf('баланс') >= 0 || idNorm.indexOf('balance') >= 0) out.balance_data = raw;
+  if (idNorm.indexOf('traffic') >= 0 || idNorm.indexOf('трафик') >= 0) out.traffic_data = raw;
   if (idNorm.indexOf('task') >= 0 || idNorm.indexOf('задач') >= 0 || idNorm.indexOf('свод') >= 0) out.tasks_data = raw;
   if (idNorm.indexOf('цкп') >= 0 || idNorm.indexOf('ckp') >= 0) out.ckp_data = raw;
 }
@@ -422,13 +461,19 @@ function extractMetrics(context) {
     if (!label) continue;
     Object.keys(METRICS).forEach(metric => {
       if (allowed.indexOf(metric) < 0) return;
-      if (result[metric]) return;
-      const score = metricScore(label, METRICS[metric]);
+      const score = metricScoreFor(metric, label);
       if (score < MATCH_MIN_SCORE) return;
       const valuesByKey = {};
-      months.forEach(m => valuesByKey[m.key] = toNum(data[r][m.col]));
+      months.forEach(m => {
+        const value = toNum(data[r][m.col]);
+        if (valuesByKey[m.key] === undefined || Math.abs(valuesByKey[m.key]) < 0.000001) {
+          valuesByKey[m.key] = value;
+        }
+      });
       if (hasUsefulValues(Object.keys(valuesByKey).map(k => valuesByKey[k]))) {
-        result[metric] = { label, score: +score.toFixed(3), valuesByKey };
+        if (!result[metric] || score > result[metric].score) {
+          result[metric] = { label, score: +score.toFixed(3), valuesByKey };
+        }
       }
     });
   }
@@ -442,7 +487,7 @@ function allowedMetrics(context) {
   const dirs = ['rev_core','rev_streams','rev_influence','rev_mannequin'];
   const traffic = ['tr_fb','tr_tg','tr_teasers','tr_influence','tr_pp','tr_google','ftd_old','ftd_new','ftd_total','crm_rev','crm_pct'];
   const cashflow = ['ncf_op','ncf_inv','ncf_fin','total_ncf','dividends','cash'];
-  const balance = ['assets_total','equity','liabilities','lt_debt','st_debt','kz','current_ratio','abs_liquidity','fin_stability','autonomy','de_ratio','dfl','roe_monthly','roa_monthly'];
+  const balance = ['assets_total','equity','liabilities','cash','lt_debt','st_debt','kz','current_ratio','abs_liquidity','fin_stability','autonomy','de_ratio','dfl','roe_monthly','roa_monthly'];
   if (id.indexOf('цкп') >= 0 || id.indexOf('roadmap') >= 0 || id.indexOf('задач') >= 0 || id.indexOf('task') >= 0) return [];
   if (id.indexOf('плат') >= 0 || id.indexOf('payment') >= 0 || id.indexOf('календар') >= 0) return cashflow;
   if (id.indexOf('баланс') >= 0 || id.indexOf('balance') >= 0) return balance;
@@ -474,7 +519,7 @@ function findMonthColumns(data) {
   for (let r = 0; r < maxRows; r++) {
     const months = [];
     for (let c = 0; c < data[r].length; c++) {
-      const parsed = parseMonth(data[r][c], c, data);
+      const parsed = parseMonth(data[r][c], c, data, r);
       if (parsed) months.push({ row: r, col: c, key: parsed.key, label: parsed.label });
     }
     if (months.length >= 2 && (!best || months.length > best.length)) best = months;
@@ -482,13 +527,19 @@ function findMonthColumns(data) {
   return best || [];
 }
 
-function parseMonth(value, col, data) {
+function parseMonth(value, col, data, rowIdx) {
   if (!value && value !== 0) return null;
   if (value instanceof Date) {
     return monthObj(value.getFullYear(), value.getMonth() + 1);
   }
+  if (typeof value === 'number' && value >= 1 && value <= 12 && Math.floor(value) === value && looksLikeNumericMonthRow(data, rowIdx)) {
+    return monthObj(inferYearFromNearbyHeaders(data, col) || getAnalysisYear(), value);
+  }
   const s = String(value).trim();
   if (!s) return null;
+  if (/^(1[0-2]|[1-9])$/.test(s) && looksLikeNumericMonthRow(data, rowIdx)) {
+    return monthObj(inferYearFromNearbyHeaders(data, col) || getAnalysisYear(), +s);
+  }
   const iso = s.match(/^(\d{4})[-/.](\d{1,2})/);
   if (iso) return monthObj(+iso[1], +iso[2]);
 
@@ -513,6 +564,17 @@ function parseMonth(value, col, data) {
     year = inferYearFromNearbyHeaders(data, col) || getAnalysisYear();
   }
   return monthObj(year, month);
+}
+
+function looksLikeNumericMonthRow(data, rowIdx) {
+  if (rowIdx === undefined || rowIdx === null || rowIdx < 0 || !data[rowIdx]) return false;
+  const row = data[rowIdx];
+  const nums = row.filter(v => {
+    const n = typeof v === 'number' ? v : (/^(1[0-2]|[1-9])$/.test(String(v).trim()) ? +String(v).trim() : NaN);
+    return Number.isFinite(n) && n >= 1 && n <= 12 && Math.floor(n) === n;
+  });
+  const text = normText(row.slice(0, 4).join(' '));
+  return nums.length >= 2 && (text.indexOf('month') >= 0 || text.indexOf('месяц') >= 0 || nums.length >= 6);
 }
 
 function inferYearFromNearbyHeaders(data, col) {
@@ -578,6 +640,26 @@ function trimEmptySeries(out) {
 
 function hasUsefulValues(values) {
   return Array.isArray(values) && values.some(v => v !== null && v !== '' && v !== undefined && !isNaN(+v) && Math.abs(+v) > 0.000001);
+}
+
+function metricScoreFor(metric, label) {
+  const nLabel = normText(label);
+  const rejects = METRIC_REJECT_TOKENS[metric] || [];
+  if (rejects.some(t => nLabel.indexOf(normText(t)) >= 0)) return 0;
+  const required = METRIC_REQUIRED_TOKENS[metric] || [];
+  if (required.length && !required.some(t => nLabel.indexOf(normText(t)) >= 0)) return 0;
+  let score = metricScore(label, METRICS[metric]);
+  const exactBoosts = {
+    op_margin_pct: ['рентабельность по операционной прибыли', 'рентабельность по ebitda', 'рентабельность по ebitcac', 'ebitdac margin'],
+    np_margin_pct: ['рентабельность по чп', 'рентабельность по чп общая', 'рентабельность по чистой прибыли'],
+    cash: ['cash at end of month', 'остаток денежных средств на конец', 'остаток дс на конец', 'конечный остаток'],
+    total_ncf: ['total ncf monthly cash change', 'total ncf monthly cash', 'общий денежный поток']
+  }[metric] || [];
+  exactBoosts.forEach(alias => {
+    const nAlias = normText(alias);
+    if (nLabel === nAlias || nLabel.indexOf(nAlias) >= 0) score = Math.max(score, 0.995);
+  });
+  return score;
 }
 
 function metricScore(label, aliases) {

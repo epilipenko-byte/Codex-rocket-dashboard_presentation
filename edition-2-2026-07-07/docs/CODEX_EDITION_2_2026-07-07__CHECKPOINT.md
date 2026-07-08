@@ -1,6 +1,6 @@
 # CODEX_EDITION_2_2026-07-07 — checkpoint
 
-Статус: Edition 2 опубликована на GitHub Pages; Apps Script proxy Edition 2 развернут; фронт переключен на новый JSONP proxy; локальная версия после правок 2026-07-08 проверена на живых данных, публикационный пакет подготовлен к обновлению GitHub Pages.
+Статус: Edition 2 опубликована на GitHub Pages; Apps Script proxy Edition 2 развернут; фронт переключен на новый JSONP proxy; правки 2026-07-08 по периодам, cash, D/E, активам баланса и live-loading опубликованы и проверены на публичной GitHub Pages ссылке.
 
 ## Локально готово
 
@@ -85,6 +85,8 @@ Documentation commits:
 
 - `854b525` — `Add Edition 2 documentation package`, uploaded Markdown handoff package to `edition-2-2026-07-07/docs/`.
 - `c3faf07` — `Add Edition 2 source requirements docs`, uploaded source Word TZ documents to `edition-2-2026-07-07/docs/source/`.
+- `6a3f418` — `Update Edition 2 dashboard live data matching`, uploaded updated `index.html` and `apps_script_proxy.js`.
+- `e65a73f` — `Update Edition 2 documentation after live checks`, uploaded updated Edition 2 documentation package.
 
 Проверка опубликованной страницы:
 
@@ -94,10 +96,22 @@ Documentation commits:
 - пароль `password` принят;
 - вкладки `ПРОЕКТЫ ROCKET`, `LUDENS GROUP`, `РЕЗУЛЬТАТЫ`, `ТЕХ. ЛИСТ` отображаются;
 - пользовательский интерфейс не показывает слово `Codex`.
+- после правок 2026-07-08 публичная страница проверена с cache-buster:
+  - URL: `https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/edition-2-2026-07-07/`;
+  - пароль `password` принят;
+  - статус `LIVE — Google Sheets`;
+  - период по умолчанию `Янв—Июн 2026`;
+  - отображаются 13 вкладок;
+  - карточки обзора берут последний выбранный месяц, на момент проверки июнь 2026;
+  - D/E подтягивается из строки `Финансовый рычаг = Заемный капитал/ ср. Собственный капитал D/E`;
+  - cash подтягивается из строки `Денежные средства`;
+  - активы баланса подтягиваются из строки `Активы ↓`.
 
 Дата проверки сайта: `2026-07-08 00:31 +03`.
 
 Дата проверки полного GitHub-пакета: `2026-07-08 00:36 +03`.
+
+Дата повторной проверки после утренних исправлений: `2026-07-08 13:27 +03`.
 
 ## История публикации
 

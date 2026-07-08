@@ -446,6 +446,7 @@ const DATA_FIELDS=['revenue','var_costs','margin_pct','gross_margin_pct','op_mar
   'ftd_old','ftd_new','ftd_total','crm_rev','crm_pct'];
 const COST_FIELDS=['var_costs','traffic_cost','indirect','interest','dividends'];
 const PERCENT_FIELDS=['margin_pct','gross_margin_pct','op_margin_pct','np_margin_pct','crm_pct'];
+const TRAFFIC_CHANNEL_FIELDS=['tr_fb','tr_tg','tr_teasers','tr_influence','tr_pp','tr_google'];
 function usefulSeries(a){return Array.isArray(a)&&a.some(v=>Number.isFinite(+v)&&Math.abs(+v)>0.000001)}
 function normalizeData(){
   const n=Math.max(1,(D.months||[]).length);
@@ -468,6 +469,10 @@ function normalizeData(){
   }
   if(!hadNp&&D.revenue.some(v=>v>0)&&D.net_profit.some(v=>v!==0)){
     D.np_margin_pct=D.revenue.map((r,i)=>r?+((D.net_profit[i]/r)*100).toFixed(2):0);
+  }
+  const channelTotals=(D.months||[]).map((_,i)=>TRAFFIC_CHANNEL_FIELDS.reduce((s,f)=>s+Math.abs(+D[f][i]||0),0));
+  if(channelTotals.some(v=>v>0)&&channelTotals.reduce((s,v)=>s+v,0)>Math.max(1,D.traffic_cost.reduce((s,v)=>s+Math.abs(+v||0),0))*5){
+    D.traffic_cost=channelTotals;
   }
 }
 function hasDuplicateMonths(months){

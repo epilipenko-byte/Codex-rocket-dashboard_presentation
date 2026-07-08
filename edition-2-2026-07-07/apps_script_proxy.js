@@ -40,6 +40,7 @@ const GENERIC_MATCH_TOKENS = {
 };
 
 const METRIC_REJECT_TOKENS = {
+  var_costs: ['трафик', 'traffic', 'маркетинг', 'marketing', 'google', 'facebook', 'fb', 'tg', 'источник', 'канал', 'roi', 'ftd'],
   margin_pct: ['валов', 'операцион', 'ebitda', 'ebitdac', 'чист', 'чп', 'net profit'],
   gross_margin_pct: ['маржинальн', 'операцион', 'ebitda', 'ebitdac', 'чист', 'чп', 'net profit'],
   op_margin_pct: ['валов', 'маржинальн доход', 'чист', 'чп', 'net profit'],
@@ -49,6 +50,7 @@ const METRIC_REJECT_TOKENS = {
 };
 
 const METRIC_REQUIRED_TOKENS = {
+  var_costs: ['переменн', 'variable'],
   op_margin_pct: ['операцион', 'ebitda', 'ebitdac'],
   np_margin_pct: ['чист', 'чп', 'net profit'],
   cash: ['cash at end', 'end of month', 'конец', 'конечн', 'остаток дс', 'денежные средства'],
@@ -64,7 +66,7 @@ const METRICS = {
   ],
   var_costs: [
     'переменные расходы', 'переменные затраты', 'variable costs',
-    'трафик переменные', 'затраты на трафик', 'прямые расходы'
+    'переменные', 'variable'
   ],
   margin_pct: [
     'рентабельность по маржинальному доходу', 'рентабельность маржинальная',
@@ -605,7 +607,6 @@ function deriveMetrics(out) {
   ensureLen(out, 'op_profit');
   ensureLen(out, 'interest');
 
-  if (!hasUsefulValues(out.var_costs) && hasUsefulValues(out.traffic_cost)) out.var_costs = out.traffic_cost.slice();
   if (!hasUsefulValues(out.gross_margin_pct) && hasUsefulValues(out.revenue) && hasUsefulValues(out.var_costs)) {
     out.gross_margin_pct = pctSeries(out.revenue.map((v, i) => v - (out.var_costs[i] || 0)), out.revenue);
   }

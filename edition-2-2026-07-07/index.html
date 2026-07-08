@@ -149,6 +149,15 @@ table.dt tr:hover td{background:rgba(167,139,250,.03)}
 /* RAW TABLE */
 .raw-table-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
 .raw-table-wrap table.dt{font-size:9px}
+.source-section{border:1px solid var(--border);border-radius:8px;background:rgba(10,18,10,.36);margin:10px 0;overflow:hidden}
+.source-section summary{cursor:pointer;list-style:none;padding:11px 14px;font-size:12px;font-weight:700;color:var(--text);background:rgba(12,23,14,.78);border-left:3px solid var(--accent-dim);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.source-section summary::-webkit-details-marker{display:none}
+.source-section summary:after{content:'+';font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:14px}
+.source-section[open] summary:after{content:'-'}
+.source-section .section-meta{font-size:9px;color:var(--text-dim);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.dt tr.source-total td{background:rgba(69,137,148,.34);color:var(--text);font-weight:700}
+.dt tr.source-subtotal td{background:rgba(69,137,148,.18);font-weight:650}
+.dt tr.source-muted td{color:var(--text-dim)}
 .ckp-block{display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(260px,.9fr);gap:14px;margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:8px;background:rgba(15,25,15,.36)}
 .ckp-text h3{margin-bottom:10px}
 .ckp-chart{min-height:220px}
@@ -447,7 +456,9 @@ const DATA_FIELDS=['revenue','var_costs','margin_pct','gross_margin_pct','op_mar
 const COST_FIELDS=['var_costs','traffic_cost','indirect','interest','dividends'];
 const PERCENT_FIELDS=['margin_pct','gross_margin_pct','op_margin_pct','np_margin_pct','crm_pct'];
 const TRAFFIC_CHANNEL_FIELDS=['tr_fb','tr_tg','tr_teasers','tr_influence','tr_pp','tr_google'];
+const MONTH_FULL=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 function usefulSeries(a){return Array.isArray(a)&&a.some(v=>Number.isFinite(+v)&&Math.abs(+v)>0.000001)}
+function ratioLikeSeries(a){return Array.isArray(a)&&a.some(v=>Math.abs(+v)>0.000001)&&Math.max(...a.map(v=>Math.abs(+v||0)))<=5}
 function normalizeData(){
   const n=Math.max(1,(D.months||[]).length);
   const hadMargin=usefulSeries(D.margin_pct),hadGross=usefulSeries(D.gross_margin_pct),hadOp=usefulSeries(D.op_margin_pct),hadNp=usefulSeries(D.np_margin_pct);
@@ -464,6 +475,13 @@ function normalizeData(){
     D.gross_margin_pct=D.revenue.map((r,i)=>r?+(((r-D.var_costs[i])/r)*100).toFixed(2):0);
   }
   if(!hadMargin)D.margin_pct=D.gross_margin_pct.slice();
+  if(D.revenue.some(v=>v>1000)&&ratioLikeSeries(D.var_costs)&&usefulSeries(D.margin_pct)){
+    const pctMax=Math.max(...D.margin_pct.map(v=>Math.abs(+v||0)));
+    D.var_costs=D.revenue.map((r,i)=>{
+      const pct=pctMax<=1.5?(+D.margin_pct[i]||0)*100:(+D.margin_pct[i]||0);
+      return Math.max(0,(+r||0)*(1-pct/100));
+    });
+  }
   if(!hadOp&&D.revenue.some(v=>v>0)&&D.op_profit.some(v=>v!==0)){
     D.op_margin_pct=D.revenue.map((r,i)=>r?+((D.op_profit[i]/r)*100).toFixed(2):0);
   }
@@ -474,6 +492,43 @@ function normalizeData(){
   if(channelTotals.some(v=>v>0)&&channelTotals.reduce((s,v)=>s+v,0)>Math.max(1,D.traffic_cost.reduce((s,v)=>s+Math.abs(+v||0),0))*5){
     D.traffic_cost=channelTotals;
   }
+  hydrateTrafficFromRaw();
+}
+function hydrateTrafficFromRaw(){
+  const rows=Array.isArray(D.traffic_data)?D.traffic_data:[];
+  if(!rows.length||!Array.isArray(D.months))return;
+  const totalCol=findTrafficTotalCol(rows);
+  if(totalCol<0)return;
+  const ftd=Array(D.months.length).fill(0);
+  const dep=Array(D.months.length).fill(0);
+  const traffic=Array(D.months.length).fill(0);
+  rows.forEach(row=>{
+    const label=String(row[0]||'').trim().toLowerCase();
+    const monthIdx=monthIndexFromLabel(label);
+    if(monthIdx<0||monthIdx>=D.months.length)return;
+    const val=parseRuNumber(row[totalCol]);
+    if(!Number.isFinite(val))return;
+    if(label.includes('ftd'))ftd[monthIdx]=Math.abs(val);
+    else if(label.includes('dep'))dep[monthIdx]=Math.abs(val);
+    else if(/^трафик\s+/.test(label))traffic[monthIdx]=Math.abs(val);
+  });
+  if(ftd.some(v=>v>0)){
+    D.ftd_total=ftd;
+    if(!usefulSeries(D.ftd_new))D.ftd_new=ftd.slice();
+  }
+  if(dep.some(v=>v>0))D.dep_total=dep;
+  if(traffic.some(v=>v>0)&&traffic.filter(v=>v>0).length>=2)D.traffic_cost=traffic;
+}
+function findTrafficTotalCol(rows){
+  for(const row of rows.slice(0,8)){
+    const idx=row.findIndex(c=>String(c||'').toLowerCase().includes('итого'));
+    if(idx>=0)return idx;
+  }
+  return -1;
+}
+function monthIndexFromLabel(label){
+  const n=String(label||'').toLowerCase().replace(/ё/g,'е');
+  return MONTH_FULL.findIndex(m=>n.includes(m));
 }
 function hasDuplicateMonths(months){
   const seen=new Set();
@@ -590,33 +645,7 @@ function humanLoadError(e){
   return 'ошибка загрузки ('+msg.slice(0,60)+')';
 }
 async function fetchProxyJson(baseUrl){
-  try{
-    return await fetchProxyJsonp(baseUrl+'?action=get_all&_='+Date.now());
-  }catch(jsonpErr){
-    console.warn('JSONP proxy load failed, trying fetch:',jsonpErr);
-  }
-  const attempts=[
-    baseUrl+'?action=get_all&_='+Date.now(),
-    baseUrl+'?_='+Date.now()
-  ];
-  let lastErr=null;
-  for(const requestUrl of attempts){
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),180000);
-    try{
-      const r=await fetch(requestUrl,{method:'GET',cache:'no-store',signal:controller.signal});
-      const text=await r.text();
-      if(!r.ok)throw new Error('HTTP '+r.status+' '+text.slice(0,120));
-      const trimmed=text.trim();
-      if(trimmed.startsWith('<'))throw new Error('HTML response: '+trimmed.slice(0,80));
-      return JSON.parse(trimmed);
-    }catch(err){
-      lastErr=err;
-    }finally{
-      clearTimeout(timeout);
-    }
-  }
-  throw lastErr||new Error('proxy unavailable');
+  return await fetchProxyJsonp(baseUrl+'?action=get_all&_='+Date.now());
 }
 function fetchProxyJsonp(requestUrl){
   return new Promise((resolve,reject)=>{
@@ -921,29 +950,27 @@ ${speakerBlock('balance_ratios','Заметки докладчика к бала
 // ===== PAYMENT CALENDAR =====
 function renderPayment(){
   const paySummary=paymentSummary();
-  let html=`<div class="kpi-row" data-reveal>
-  <div class="kpi"><div class="kpi-label">План поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planIn)}</div><div class="kpi-sub nt">из payment_cal</div></div>
-  <div class="kpi"><div class="kpi-label">Факт поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.factIn)}</div><div class="kpi-sub ${paySummary.factIn>=paySummary.planIn?'up':'wr'}">${F.pct(paySummary.planIn?paySummary.factIn/paySummary.planIn*100:0)} плана</div></div>
-  <div class="kpi"><div class="kpi-label">План выплат · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planOut)}</div><div class="kpi-sub dn">из payment_cal</div></div>
-  <div class="kpi"><div class="kpi-label">Текущий кэш по кошелькам</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub up">из ДДС / баланс</div></div>
-</div><div class="asec" data-reveal><h3>💳 Платёжный календарь</h3>`;
-  if(D.payment_data&&Array.isArray(D.payment_data)&&D.payment_data.length>1){
-    html+=rawTableToExpandable(D.payment_data,'pay_tree',[
+  const paymentTable=D.payment_data&&Array.isArray(D.payment_data)&&D.payment_data.length>1
+    ? rawTableToExpandable(D.payment_data,'pay_tree',[
       ['месяц','month'],
       ['сумма','usd','amount'],
       ['кошелек','wallet'],
       ['статья','article'],
       ['факт','fact']
-    ]);
-  } else {
-    html+=`<p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Источник: Платёжный календарь — Свод + Плановый реестр.<br>После подключения Apps Script данные будут загружаться автоматически.</p>
-<div class="asec" style="border:1px dashed var(--border);background:transparent;margin-top:12px"><h3 style="font-size:13px;color:var(--text-dim)">⚠ Допущение #2</h3><p style="font-size:11px;color:var(--text-dim)">При анализе обязательно учитывать платёжный календарь — плановые платежи влияют на прогноз ДС и риск кассового разрыва.</p></div>`;
-  }
-  html+=`</div>
+    ])
+    : `<p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Источник: Платёжный календарь — Свод + Плановый реестр.<br>После подключения Apps Script данные будут загружаться автоматически.</p>
+<div class="asec" style="border:1px dashed var(--border);background:transparent;margin-top:12px"><h3 style="font-size:13px;color:var(--text-dim)">Допущение #2</h3><p style="font-size:11px;color:var(--text-dim)">При анализе обязательно учитывать платёжный календарь — плановые платежи влияют на прогноз ДС и риск кассового разрыва.</p></div>`;
+  let html=`<div class="kpi-row" data-reveal>
+  <div class="kpi"><div class="kpi-label">План поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planIn)}</div><div class="kpi-sub nt">из payment_cal</div></div>
+  <div class="kpi"><div class="kpi-label">Факт поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.factIn)}</div><div class="kpi-sub ${paySummary.factIn>=paySummary.planIn?'up':'wr'}">${F.pct(paySummary.planIn?paySummary.factIn/paySummary.planIn*100:0)} плана</div></div>
+  <div class="kpi"><div class="kpi-label">План выплат · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planOut)}</div><div class="kpi-sub dn">из payment_cal</div></div>
+  <div class="kpi"><div class="kpi-label">Текущий кэш по кошелькам</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub up">из ДДС / баланс</div></div>
+</div>
 <div class="grid2">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>Исходящие платежи (YTD)</div><div class="cw"><canvas id="c-pay-out"></canvas></div></div>
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Кэш vs Обязательства</div><div class="cw"><canvas id="c-pay-cash"></canvas></div></div>
-</div>${speakerBlock('payment_calendar','Заметки докладчика к платёжному календарю','Сначала показать план/факт поступлений и выплат за выбранный месяц, затем риски по кошелькам и кэшу.')}`;
+</div>${speakerBlock('payment_calendar','Заметки докладчика к платёжному календарю','Сначала показать план/факт поступлений и выплат за выбранный месяц, затем риски по кошелькам и кэшу.')}
+<div class="asec" data-reveal><h3>Платёжный календарь: исходная таблица</h3>${paymentTable}</div>`;
   document.getElementById('p-payment').innerHTML=html;
   const m=gm();
   mc('c-pay-out',{type:'bar',data:{labels:m,datasets:[{label:'Дивиденды',data:sl(D.dividends),backgroundColor:'rgba(248,113,113,.4)',borderRadius:3},{label:'Проценты',data:sl(D.interest),backgroundColor:'rgba(167,139,250,.3)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'$'}}}}});
@@ -965,10 +992,10 @@ function paymentSummary(){
     if(target&&m&&!m.includes(target))return;
     const amount=parseRuNumber(iAmount>=0?r[iAmount]:0);
     if(!Number.isFinite(amount))return;
-    const factVal=iFact>=0?String(r[iFact]||'').toLowerCase():'';
-    const isFact=factVal==='true'||factVal==='да'||factVal==='1'||factVal.includes('факт');
-    if(amount>=0){out.planIn+=amount;if(isFact)out.factIn+=amount}
-    else{out.planOut+=Math.abs(amount);if(isFact)out.factOut+=Math.abs(amount)}
+    const factAmount=iFact>=0?parseRuNumber(r[iFact]):NaN;
+    const hasFact=Number.isFinite(factAmount)&&Math.abs(factAmount)>0.000001;
+    if(amount>=0){out.planIn+=amount;if(hasFact)out.factIn+=Math.max(0,factAmount)}
+    else{out.planOut+=Math.abs(amount);if(hasFact)out.factOut+=Math.abs(Math.min(0,factAmount))}
   });
   return out;
 }
@@ -977,26 +1004,27 @@ function paymentSummary(){
 function renderTraffic(){
   const m=gm(),i=li(),p=pi();
   const trS=sm(D.traffic_cost),revS=sm(D.revenue);
+  const dep=Array.isArray(D.dep_total)?D.dep_total:Array(D.months.length).fill(0);
   const tTr=F.trend(D.traffic_cost[i],p!=null?D.traffic_cost[p]:null,p!=null?D.months[p]:'');
   const trafficTable=D.traffic_data?rawTableToExpandable(D.traffic_data,'traffic_source_tree'):expandableTable('traffic_tree',e2TrafficSections());
   document.getElementById('p-traffic').innerHTML=`
 <div class="kpi-row" data-reveal>
   <div class="kpi"><div class="kpi-label">Затраты на трафик</div><div class="kpi-val">${F.$(trS)}</div><div class="kpi-sub ${tTr.c}">${tTr.t}</div></div>
   <div class="kpi"><div class="kpi-label">% от выручки</div><div class="kpi-val">${F.pct(trS/revS*100)}</div><div class="kpi-sub ${trS/revS>.4?'dn':'up'}">цель < 40%</div></div>
-  <div class="kpi"><div class="kpi-label">FTD новых</div><div class="kpi-val">${F.n(D.ftd_new[i])}</div><div class="kpi-sub dn">↓ с ${F.n(D.ftd_new[0])}</div></div>
-  <div class="kpi"><div class="kpi-label">CRM %</div><div class="kpi-val">${D.crm_pct[i]}%</div><div class="kpi-sub ${D.crm_pct[i]>75?'dn':'up'}">${D.crm_pct[i]>75?'крит.':'норма'}</div></div>
-  <div class="kpi"><div class="kpi-label">FTD всего</div><div class="kpi-val">${F.n(D.ftd_total[i])}</div><div class="kpi-sub nt">стар.${D.ftd_old[i]}+нов.${D.ftd_new[i]}</div></div>
-  <div class="kpi"><div class="kpi-label">Марж. доход после трафика</div><div class="kpi-val">${F.$(revS-trS)}</div><div class="kpi-sub ${revS-trS>0?'up':'dn'}">${F.pct(revS?(revS-trS)/revS*100:0)}</div></div>
+  <div class="kpi"><div class="kpi-label">FTD · ${D.months[i]||'месяц'}</div><div class="kpi-val">${F.n(D.ftd_total[i])}</div><div class="kpi-sub nt">из таблицы трафика</div></div>
+  <div class="kpi"><div class="kpi-label">Dep count</div><div class="kpi-val">${F.n(dep[i]||0)}</div><div class="kpi-sub nt">из таблицы трафика</div></div>
+  <div class="kpi"><div class="kpi-label">FTD · период</div><div class="kpi-val">${F.n(sm(D.ftd_total))}</div><div class="kpi-sub nt">сумма выбранного периода</div></div>
+  <div class="kpi"><div class="kpi-label">Выручка на FTD</div><div class="kpi-val">${F.$(D.ftd_total[i]?D.revenue[i]/D.ftd_total[i]:0)}</div><div class="kpi-sub ${revS-trS>0?'up':'dn'}">марж. доход после трафика ${F.$(revS-trS)}</div></div>
 </div>
 <div class="grid2">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>По каналам (YTD)</div><div class="cw"><canvas id="c-trch"></canvas></div></div>
-  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>FTD и % CRM</div><div class="cw"><canvas id="c-ftd"></canvas></div></div>
+  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>FTD и депозиты</div><div class="cw"><canvas id="c-ftd"></canvas></div></div>
   <div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Динамика трафика по каналам</div><div class="cw tall"><canvas id="c-tr-dyn"></canvas></div></div>
 </div>
 ${speakerBlock('traffic_sources','Заметки докладчика к трафику','Пояснить, какие источники дают выручку/FTD, где трафик давит на маржу, и какие каналы требуют лимитов.')}
 <div class="asec" data-reveal><h3>Раскрываемая таблица трафика</h3>${trafficTable}</div>`;
   mc('c-trch',{type:'doughnut',data:{labels:['FB '+F.$(sm(D.tr_fb)),'TG '+F.$(sm(D.tr_tg)),'Тизерки '+F.$(sm(D.tr_teasers)),'Influence '+F.$(sm(D.tr_influence)),'ПП '+F.$(sm(D.tr_pp)),'Google '+F.$(sm(D.tr_google))],datasets:[{data:[sm(D.tr_fb),sm(D.tr_tg),sm(D.tr_teasers),sm(D.tr_influence),sm(D.tr_pp),sm(D.tr_google)],backgroundColor:['rgba(34,211,238,.5)','rgba(168,85,247,.4)','rgba(6,182,212,.4)','rgba(167,139,250,.4)','rgba(215,230,190,.3)','rgba(248,113,113,.3)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:9}}}},cutout:'55%'}});
-  mc('c-ftd',{type:'bar',data:{labels:m,datasets:[{label:'FTD новых',data:sl(D.ftd_new),backgroundColor:'rgba(34,211,238,.4)',borderRadius:3},{label:'FTD старых',data:sl(D.ftd_old),backgroundColor:'rgba(167,139,250,.3)',borderRadius:3},{label:'% CRM',data:sl(D.crm_pct),type:'line',borderColor:'rgba(52,211,153,.7)',borderWidth:2,pointRadius:4,pointBackgroundColor:'rgba(52,211,153,.7)',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{stacked:true,title:{display:true,text:'FTD'}},y1:{position:'right',grid:{display:false},min:50,max:100}}}});
+  mc('c-ftd',{type:'bar',data:{labels:m,datasets:[{label:'FTD',data:sl(D.ftd_total),backgroundColor:'rgba(34,211,238,.4)',borderRadius:3},{label:'Dep count',data:sl(dep),type:'line',borderColor:'rgba(52,211,153,.8)',borderWidth:2,pointRadius:4,pointBackgroundColor:'rgba(52,211,153,.8)',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'FTD'}},y1:{position:'right',grid:{display:false},title:{display:true,text:'Dep'}}}}});
   mc('c-tr-dyn',{type:'line',data:{labels:m,datasets:[{label:'FB',data:sl(D.tr_fb),borderColor:'rgba(34,211,238,.7)',tension:.3},{label:'TG',data:sl(D.tr_tg),borderColor:'rgba(168,85,247,.7)',tension:.3},{label:'Тизерки',data:sl(D.tr_teasers),borderColor:'rgba(6,182,212,.7)',tension:.3},{label:'Influence',data:sl(D.tr_influence),borderColor:'rgba(167,139,250,.7)',tension:.3},{label:'ПП',data:sl(D.tr_pp),borderColor:'rgba(215,230,190,.6)',tension:.3},{label:'Google',data:sl(D.tr_google),borderColor:'rgba(248,113,113,.6)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
 }
 
@@ -1250,33 +1278,8 @@ function renderRawTable(data,id,headerGroups){
 }
 function rawTableToExpandable(data,id,headerGroups){
   if(!data||!data.length)return'';
-  const headerIdx=headerGroups?findTableHeader(data,headerGroups,1):0;
-  const headers=(data[headerIdx]||[]).map(h=>String(h||'').trim());
-  const rows=data.slice(headerIdx+1).filter(r=>r&&r.some(c=>c!==''&&c!==null&&c!==undefined));
-  if(!rows.length)return'<p class="tech-note">Нет данных</p>';
-  const maxCols=Math.min(headers.length||Math.max(...rows.map(r=>r.length)),18);
-  const tableHeaders=(headers.length?headers:Array.from({length:maxCols},(_,i)=>i?'Колонка '+(i+1):'Показатель')).slice(0,maxCols);
-  const groups=[];
-  let current=null;
-  rows.slice(0,160).forEach((row,idx)=>{
-    const label=String(row[0]??'').trim()||('Строка '+(idx+1));
-    const nums=row.slice(1,maxCols).map(v=>parseRuNumber(v));
-    const hasNums=nums.some(v=>Number.isFinite(v)&&Math.abs(v)>0.000001);
-    const looksChild=/^[-–—]/.test(label)||/январ|феврал|март|апрел|май|июн|июл|август|сентябр|октябр|ноябр|декабр/i.test(label);
-    if(!current||(!looksChild&&hasNums&&current.children.length)){
-      current={row,children:[]};
-      groups.push(current);
-    }else if(looksChild||current){
-      current.children.push({row});
-    }
-  });
-  let html=`<div class="raw-table-wrap"><table class="dt tree-table" id="${id}"><thead><tr>${tableHeaders.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
-  groups.forEach((g,gi)=>{
-    const rowId=`${id}-${gi}`;
-    html+=rawExpandableRow(g.row,tableHeaders,rowId,g.children.length>0,'tot');
-    g.children.forEach(c=>{html+=rawExpandableRow(c.row,tableHeaders,rowId,false,`hidden-row ${rowId} lvl1`)});
-  });
-  return html+'</tbody></table></div>';
+  const split=/projects|ludens|combo|consol|ckp/i.test(String(id||''));
+  return sourceOutlineTable(data,id,{headerGroups,split});
 }
 function rawExpandableRow(row,headers,rowId,hasToggle,cls){
   return `<tr class="${cls||''}">${headers.map((_,ci)=>{
@@ -1286,6 +1289,113 @@ function rawExpandableRow(row,headers,rowId,hasToggle,cls){
     const c=Number.isFinite(n)&&n<0?'dn':Number.isFinite(n)&&n>0?'up':'nt';
     return `<td class="${ci&&Number.isFinite(n)?c:''}">${prefix}${esc(formatRawCell(v))}</td>`;
   }).join('')}</tr>`;
+}
+function sourceOutlineTable(data,id,opts={}){
+  if(!data||!data.length)return'';
+  opts={...opts,id};
+  const sections=sourceSections(data,opts);
+  if(!sections.length)return'<p class="tech-note">Нет данных</p>';
+  return sections.map((s,si)=>sourceSectionHtml(s,`${id}-src-${si}`,opts)).join('');
+}
+function sourceSections(data,opts={}){
+  const rows=(data||[]).filter(r=>r&&r.some(c=>String(c??'').trim()!==''));
+  if(!rows.length)return[];
+  if(!opts.split){
+    const headerIdx=opts.headerGroups?findTableHeader(rows,opts.headerGroups,1):findBestSourceHeader(rows);
+    const header=rows[headerIdx]||rows[0]||[];
+    const body=rows.slice(headerIdx+1);
+    return [{title:opts.title||sourceDefaultTitle(idFromOpts(opts),rows[0]),header,rows:body}].filter(s=>s.rows&&s.rows.length);
+  }
+  const sections=[];
+  let i=0;
+  while(i<rows.length){
+    if(isSourceSectionStart(rows[i],rows[i+1])){
+      const title=sourceTitle(rows[i]);
+      const header=rows[i+1];
+      const body=[];
+      i+=2;
+      while(i<rows.length&&!isSourceSectionStart(rows[i],rows[i+1])){
+        if(!isMonthHeaderRow(rows[i]))body.push(rows[i]);
+        i++;
+      }
+      sections.push({title,header,rows:body});
+    }else{
+      const headerIdx=opts.headerGroups?findTableHeader(rows,opts.headerGroups,1):0;
+      const header=rows[headerIdx]||[];
+      const body=rows.slice(headerIdx+1).filter(r=>!isMonthHeaderRow(r));
+      sections.push({title:opts.title||sourceDefaultTitle(idFromOpts(opts),rows[0]),header,rows:body});
+      break;
+    }
+  }
+  return sections.filter(s=>s.rows&&s.rows.length);
+}
+function findBestSourceHeader(rows){
+  const idx=rows.findIndex(r=>isMonthHeaderRow(r));
+  return idx>=0?idx:0;
+}
+function idFromOpts(opts){return String(opts&&opts.id||'')}
+function sourceDefaultTitle(id,row){
+  if(id.includes('cf'))return'ДДС: исходная таблица';
+  if(id.includes('balance'))return'Баланс: исходная таблица';
+  if(id.includes('pay'))return'Платёжный календарь: исходная таблица';
+  if(id.includes('traffic'))return'Трафик: исходная таблица';
+  if(id.includes('ckp'))return'ЦКП: исходная таблица';
+  return sourceTitle(row)||'Исходная таблица';
+}
+function isSourceSectionStart(row,nextRow){
+  if(!nextRow||!isMonthHeaderRow(nextRow))return false;
+  const title=sourceTitle(row);
+  return !!title&&/[A-Za-zА-Яа-яЁё]/.test(title)&&!isMonthToken(title);
+}
+function sourceTitle(row){
+  const cells=(row||[]).map(c=>String(c??'').trim()).filter(Boolean);
+  if(!cells.length)return'Раздел источника';
+  const preferred=cells.find(c=>/[A-Za-zА-Яа-яЁё]/.test(c)&&!isMonthToken(c)&&!/^[-+]?\d+([,.]\d+)?%?$/.test(c));
+  return preferred||cells[0];
+}
+function isSourceTitleRow(row){
+  const vals=(row||[]).map(c=>String(c??'').trim()).filter(Boolean);
+  if(!vals.length)return false;
+  if(isMonthHeaderRow(row))return false;
+  const text=vals.join(' ');
+  const numbers=vals.filter(v=>Number.isFinite(parseRuNumber(v))).length;
+  const hasTitle=/[A-Za-zА-Яа-яЁё]/.test(text);
+  return hasTitle&&numbers<=1&&vals.length<=3;
+}
+function isMonthHeaderRow(row){
+  const vals=(row||[]).map(c=>String(c??'').trim().toLowerCase()).filter(Boolean);
+  if(!vals.length)return false;
+  const monthHits=vals.filter(isMonthToken).length;
+  const numericMonthHits=vals.filter(v=>/^(1|2|3|4|5|6|7|8|9|10|11|12)$/.test(v)).length;
+  return monthHits>=2||numericMonthHits>=4;
+}
+function isMonthToken(v){
+  return /^(янв|январ|фев|феврал|мар|март|апр|апрел|май|июн|июл|авг|август|сен|сентябр|окт|октябр|ноя|ноябр|дек|декабр)/i.test(String(v||''));
+}
+function sourceSectionHtml(section,id,opts={}){
+  const maxCols=Math.min(Math.max(section.header.length,...section.rows.map(r=>r.length)),opts.maxCols||18);
+  const headers=(section.header.length?section.header:Array.from({length:maxCols},(_,i)=>i?'Колонка '+(i+1):'Показатель')).slice(0,maxCols);
+  const rows=section.rows.filter(r=>r&&r.some(c=>String(c??'').trim()!=='')).slice(0,opts.maxRows||220);
+  const summary=`${esc(section.title)} <span class="section-meta">${rows.length} строк</span>`;
+  let html=`<details class="source-section"><summary>${summary}</summary><div class="raw-table-wrap"><table class="dt" id="${id}"><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const cls=sourceRowClass(r);
+    html+=`<tr class="${cls}">${headers.map((_,ci)=>sourceCell(r[ci],ci)).join('')}</tr>`;
+  });
+  html+='</tbody></table></div></details>';
+  return html;
+}
+function sourceRowClass(row){
+  const label=String((row||[]).find(c=>String(c??'').trim()!=='')||'').toLowerCase();
+  if(!label)return'source-muted';
+  if(/выручка$|переменные$|маржинальная прибыль|валовая прибыль|ebitda$|операционная прибыль|чистая прибыль|ncf|cash at end|денег на начало|активы|капитал|обязательства|итого|total/.test(label))return'source-total';
+  if(/рентабельность|roi|маржа|коэффициент|доля|ftd count|dep count/.test(label))return'source-subtotal';
+  return'';
+}
+function sourceCell(v,ci){
+  const n=parseRuNumber(v);
+  const cls=ci&&Number.isFinite(n)?(n<0?'dn':n>0?'up':'nt'):'';
+  return `<td class="${cls}">${esc(formatRawCell(v))}</td>`;
 }
 function parseRuNumber(v){
   if(typeof v==='number')return v;
@@ -1521,10 +1631,10 @@ function renderOverview(){
 ${dsBadge(dataSource)}
 <div class="kpi-row" data-reveal>
   <div class="kpi"><div class="kpi-label">Выручка · ${esc(D.months[i]||'месяц')}</div><div class="kpi-val">${F.$(rev)}</div><div class="kpi-sub ${tRev.c}">${tRev.t}</div></div>
-  <div class="kpi"><div class="kpi-label">Чистая прибыль · ${esc(D.months[i]||'месяц')}</div><div class="kpi-val">${F.$(np)}</div><div class="kpi-sub ${tNp.c}">${tNp.t} · маржа ${F.pct(npPct)}</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. маржинальная</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub ${tMarg.c}">${tMarg.t} · source row</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. операционная</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub ${tOp.c}">${tOp.t} · source row</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub ${tNpPct.c}">${tNpPct.t} · source row</div></div>
+  <div class="kpi"><div class="kpi-label">Чистая прибыль · ${esc(D.months[i]||'месяц')}</div><div class="kpi-val">${F.$(np)}</div><div class="kpi-sub ${tNp.c}">${tNp.t}</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. маржинальная</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub ${tMarg.c}">${tMarg.t}</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. операционная</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub ${tOp.c}">${tOp.t}</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub ${tNpPct.c}">${tNpPct.t}</div></div>
   <div class="kpi"><div class="kpi-label">D/E</div><div class="kpi-val">${lastDE.toFixed(2)}</div><div class="kpi-sub ${lastDE>2?'dn':'up'}">долг ${F.$(debt)}</div></div>
   <div class="kpi"><div class="kpi-label">Кэш</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub ${tCash.c}">${tCash.t} · конец ${esc(D.months[i]||'периода')}</div></div>
 </div>
@@ -1574,7 +1684,7 @@ ${speakerBlock('pnl_waterfall','Заметки докладчика к блок�
 }
 function renderPnLCombo(){
   const projectTable=D.pnl_combo?rawTableToExpandable(D.pnl_combo,'projects_tree'):'<p class="tech-note">Источник ОПиУ по проектам пока не вернул сырую таблицу.</p>';
-  const html=`<div class="asec" data-reveal><h3>Проекты Rocket</h3><p class="tech-note">Проекты показываются как раскрываемая управленческая таблица по аналогии с ОПиУ: проект/блок сверху, входящие строки раскрываются по кнопке.</p>${projectTable}</div>
+  const html=`<div class="asec" data-reveal><h3>Проекты Rocket</h3><p class="tech-note">Группировка сохранена как в исходной вкладке: каждый проект открывается отдельной секцией, внутри строки идут в исходном порядке.</p>${projectTable}</div>
 <div class="grid2"><div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Выручка проектов</div><div class="cw tall"><canvas id="c-combo-rev"></canvas></div></div><div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Доля проектов</div><div class="cw tall"><canvas id="c-combo-share"></canvas></div></div></div>
 ${speakerBlock('projects_rocket','Заметки докладчика к проектам Rocket','Говорить по проектам: какой проект дает выручку, где расходная нагрузка, где маржа проседает.')}`;
   document.getElementById('p-pnl_combo').innerHTML=html;
@@ -1586,7 +1696,7 @@ ${speakerBlock('projects_rocket','Заметки докладчика к про�
 function renderPnLConsol(){
   const m=gm();
   const ludensTable=D.pnl_consol?rawTableToExpandable(D.pnl_consol,'ludens_tree'):'<p class="tech-note">Источник Ludens Group пока не вернул сырую таблицу.</p>';
-  document.getElementById('p-pnl_consol').innerHTML=`<div class="asec" data-reveal><h3>Ludens Group</h3><p class="tech-note">Консолидированный P&L группы. Таблица раскрываемая, чтобы можно было видеть строки, входящие в агрегаты.</p>${ludensTable}</div><div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Ludens Group: выручка / маржа / ЧП</div><div class="cw tall"><canvas id="c-consol-dyn"></canvas></div></div>${speakerBlock('ludens_group','Заметки докладчика к Ludens Group','Сделать акцент на консолидированной картине группы и расхождениях между проектами.')}`;
+  document.getElementById('p-pnl_consol').innerHTML=`<div class="asec" data-reveal><h3>Ludens Group</h3><p class="tech-note">Консолидированный P&L показывается в порядке исходной таблицы без искусственной перегруппировки строк.</p>${ludensTable}</div><div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Ludens Group: выручка / маржа / ЧП</div><div class="cw tall"><canvas id="c-consol-dyn"></canvas></div></div>${speakerBlock('ludens_group','Заметки докладчика к Ludens Group','Сделать акцент на консолидированной картине группы и расхождениях между проектами.')}`;
   mc('c-consol-dyn',{type:'bar',data:{labels:m,datasets:[{label:'Выручка',data:sl(D.revenue),backgroundColor:'rgba(34,211,238,.35)'},{label:'Маржинальная прибыль',data:sl(D.revenue).map((r,i)=>r-sl(D.var_costs)[i]),backgroundColor:'rgba(167,139,250,.35)'},{label:'ЧП',data:sl(D.net_profit),backgroundColor:'rgba(52,211,153,.35)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
 }
 function renderCF(){

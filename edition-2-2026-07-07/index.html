@@ -149,6 +149,10 @@ table.dt tr:hover td{background:rgba(167,139,250,.03)}
 /* RAW TABLE */
 .raw-table-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
 .raw-table-wrap table.dt{font-size:9px}
+.ckp-block{display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(260px,.9fr);gap:14px;margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:8px;background:rgba(15,25,15,.36)}
+.ckp-text h3{margin-bottom:10px}
+.ckp-chart{min-height:220px}
+.ckp-chart canvas{width:100%;height:220px}
 /* PAYMENT CALENDAR */
 .pay-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(15,25,15,.4);margin-bottom:6px;border-left:3px solid var(--border)}
 .pay-row.pay-out{border-left-color:var(--red)}
@@ -176,7 +180,7 @@ table.dt tr:hover td{background:rgba(167,139,250,.03)}
 [data-reveal].revealed{opacity:1;transform:translateY(0)}
 /* RESPONSIVE */
 @media(max-width:900px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.content{padding:14px 16px 40px}.hdr{padding:12px 16px 8px}.kpi-row{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.e2-row,.tech-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.e2-row,.tech-grid,.ckp-block{grid-template-columns:1fr}}
 @media(max-width:500px){.kpi-row{grid-template-columns:1fr 1fr}.tabs{padding:0 12px}.hdr h1{font-size:16px}}
 </style>
 </head>
@@ -248,7 +252,7 @@ async function sha(m){const b=await crypto.subtle.digest('SHA-256',new TextEncod
 
 // ===== TABS =====
 const TABS=[
-{id:'overview',label:'Обзор',v:true},
+{id:'overview',label:'Обзор месяца',v:true},
 {id:'pnl',label:'ОПиУ',v:true},
 {id:'pnl_combo',label:'Проекты Rocket',v:true},
 {id:'pnl_consol',label:'Ludens Group',v:true},
@@ -529,6 +533,7 @@ async function fetchData(){
       if(d.speaker_notes)D.speaker_notes=d.speaker_notes;
       if(d.tech_sheet)D.tech_sheet=d.tech_sheet;
       if(d.metric_diagnostics)D.metric_diagnostics=d.metric_diagnostics;
+      if(d.raw_reports)D.raw_reports=d.raw_reports;
       if(d.pnl_combo)D.pnl_combo=d.pnl_combo;
       if(d.pnl_consol)D.pnl_consol=d.pnl_consol;
       if(d.model_data)D.model_data=d.model_data;
@@ -887,7 +892,9 @@ function renderBalance(){
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--orange)"></span>D/E и автономия</div><div class="cw"><canvas id="c-de"></canvas></div></div>
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>DFL (эффект фин. рычага)</div><div class="cw"><canvas id="c-dfl"></canvas></div></div>
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Долговая структура</div><div class="cw"><canvas id="c-debt"></canvas></div></div>
-</div>`;
+</div>
+${speakerBlock('balance_ratios','Заметки докладчика к балансу','Пояснить структуру активов, капитала, обязательств, D/E и ликвидность на конец выбранного периода.')}
+<div class="asec" data-reveal><h3>Раскрываемая таблица баланса</h3>${expandableTable('balance_tree',e2BalanceSections())}</div>`;
   mc('c-radar',{type:'radar',data:{labels:['Тек.ликв.','Абс.ликв.','Фин.уст.','Автон.','ROE','ROA'],datasets:[{label:'Факт',data:[D.current_ratio[i],D.abs_liquidity[i],D.fin_stability[i],D.autonomy[i],D.roe_monthly[i]*100,D.roa_monthly[i]*100],borderColor:'rgba(34,211,238,.6)',backgroundColor:'rgba(34,211,238,.1)'},{label:'Норма',data:[1.75,.35,.70,.40,35,10],borderColor:'rgba(52,211,153,.4)',borderDash:[3,3],backgroundColor:'rgba(52,211,153,.05)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{grid:{color:'rgba(167,139,250,.08)'},pointLabels:{color:'rgba(215,230,190,.5)',font:{size:9}},ticks:{display:false},suggestedMin:0}}}});
   mc('c-de',{type:'line',data:{labels:gm(),datasets:[{label:'D/E',data:sl(D.de_ratio),borderColor:'rgba(248,113,113,.7)',tension:.3},{label:'Автономия',data:sl(D.autonomy),borderColor:'rgba(34,211,238,.7)',tension:.3,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:3,title:{display:true,text:'D/E'}},y1:{position:'right',grid:{display:false},min:0,max:.5,title:{display:true,text:'Автон.'}}}}});
   mc('c-dfl',{type:'bar',data:{labels:gm(),datasets:[{label:'DFL',data:sl(D.dfl),backgroundColor:sl(D.dfl).map(v=>v<0?'rgba(248,113,113,.4)':'rgba(52,211,153,.4)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'Эффект фин. рычага'}}}}});
@@ -897,9 +904,15 @@ function renderBalance(){
 
 // ===== PAYMENT CALENDAR =====
 function renderPayment(){
-  let html=`<div class="asec" data-reveal><h3>💳 Платёжный календарь</h3>`;
+  const paySummary=paymentSummary();
+  let html=`<div class="kpi-row" data-reveal>
+  <div class="kpi"><div class="kpi-label">План поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planIn)}</div><div class="kpi-sub nt">из payment_cal</div></div>
+  <div class="kpi"><div class="kpi-label">Факт поступлений · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.factIn)}</div><div class="kpi-sub ${paySummary.factIn>=paySummary.planIn?'up':'wr'}">${F.pct(paySummary.planIn?paySummary.factIn/paySummary.planIn*100:0)} плана</div></div>
+  <div class="kpi"><div class="kpi-label">План выплат · ${D.months[li()]||'месяц'}</div><div class="kpi-val">${F.$(paySummary.planOut)}</div><div class="kpi-sub dn">из payment_cal</div></div>
+  <div class="kpi"><div class="kpi-label">Текущий кэш по кошелькам</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub up">из ДДС / баланс</div></div>
+</div><div class="asec" data-reveal><h3>💳 Платёжный календарь</h3>`;
   if(D.payment_data&&Array.isArray(D.payment_data)&&D.payment_data.length>1){
-    html+=renderRawTable(D.payment_data,'pay_tbl',[
+    html+=rawTableToExpandable(D.payment_data,'pay_tree',[
       ['месяц','month'],
       ['сумма','usd','amount'],
       ['кошелек','wallet'],
@@ -914,11 +927,34 @@ function renderPayment(){
 <div class="grid2">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>Исходящие платежи (YTD)</div><div class="cw"><canvas id="c-pay-out"></canvas></div></div>
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Кэш vs Обязательства</div><div class="cw"><canvas id="c-pay-cash"></canvas></div></div>
-</div>`;
+</div>${speakerBlock('payment_calendar','Заметки докладчика к платёжному календарю','Сначала показать план/факт поступлений и выплат за выбранный месяц, затем риски по кошелькам и кэшу.')}`;
   document.getElementById('p-payment').innerHTML=html;
   const m=gm();
   mc('c-pay-out',{type:'bar',data:{labels:m,datasets:[{label:'Дивиденды',data:sl(D.dividends),backgroundColor:'rgba(248,113,113,.4)',borderRadius:3},{label:'Проценты',data:sl(D.interest),backgroundColor:'rgba(167,139,250,.3)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'$'}}}}});
   mc('c-pay-cash',{type:'line',data:{labels:m,datasets:[{label:'Кэш',data:sl(D.cash),borderColor:'rgba(34,211,238,.7)',tension:.3,fill:false},{label:'КЗ',data:sl(D.kz),borderColor:'rgba(248,113,113,.5)',tension:.3,fill:false,borderDash:[4,4]}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
+}
+function paymentSummary(){
+  const target=(D.months[li()]||'').toLowerCase();
+  const out={planIn:0,factIn:0,planOut:0,factOut:0};
+  const rows=Array.isArray(D.payment_data)?D.payment_data:[];
+  if(rows.length<2)return out;
+  const headerIdx=findTableHeader(rows,[['месяц','month'],['сумма','usd','amount'],['факт','fact']],1);
+  const hdr=(rows[headerIdx]||[]).map(h=>String(h||'').toLowerCase());
+  const ci=(names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i;}return-1};
+  const iMonth=ci(['месяц','month']);
+  const iAmount=ci(['сумма','usd','amount']);
+  const iFact=ci(['факт','fact']);
+  rows.slice(headerIdx+1).forEach(r=>{
+    const m=String(iMonth>=0?r[iMonth]:'').toLowerCase();
+    if(target&&m&&!m.includes(target))return;
+    const amount=parseRuNumber(iAmount>=0?r[iAmount]:0);
+    if(!Number.isFinite(amount))return;
+    const factVal=iFact>=0?String(r[iFact]||'').toLowerCase():'';
+    const isFact=factVal==='true'||factVal==='да'||factVal==='1'||factVal.includes('факт');
+    if(amount>=0){out.planIn+=amount;if(isFact)out.factIn+=amount}
+    else{out.planOut+=Math.abs(amount);if(isFact)out.factOut+=Math.abs(amount)}
+  });
+  return out;
 }
 
 // ===== TRAFFIC =====
@@ -933,12 +969,15 @@ function renderTraffic(){
   <div class="kpi"><div class="kpi-label">FTD новых</div><div class="kpi-val">${F.n(D.ftd_new[i])}</div><div class="kpi-sub dn">↓ с ${F.n(D.ftd_new[0])}</div></div>
   <div class="kpi"><div class="kpi-label">CRM %</div><div class="kpi-val">${D.crm_pct[i]}%</div><div class="kpi-sub ${D.crm_pct[i]>75?'dn':'up'}">${D.crm_pct[i]>75?'крит.':'норма'}</div></div>
   <div class="kpi"><div class="kpi-label">FTD всего</div><div class="kpi-val">${F.n(D.ftd_total[i])}</div><div class="kpi-sub nt">стар.${D.ftd_old[i]}+нов.${D.ftd_new[i]}</div></div>
+  <div class="kpi"><div class="kpi-label">Марж. доход после трафика</div><div class="kpi-val">${F.$(revS-trS)}</div><div class="kpi-sub ${revS-trS>0?'up':'dn'}">${F.pct(revS?(revS-trS)/revS*100:0)}</div></div>
 </div>
 <div class="grid2">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>По каналам (YTD)</div><div class="cw"><canvas id="c-trch"></canvas></div></div>
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>FTD и % CRM</div><div class="cw"><canvas id="c-ftd"></canvas></div></div>
   <div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Динамика трафика по каналам</div><div class="cw tall"><canvas id="c-tr-dyn"></canvas></div></div>
-</div>`;
+</div>
+${speakerBlock('traffic_sources','Заметки докладчика к трафику','Пояснить, какие источники дают выручку/FTD, где трафик давит на маржу, и какие каналы требуют лимитов.')}
+<div class="asec" data-reveal><h3>Раскрываемая таблица трафика</h3><p class="tech-note">Пока строится по нормализованным каналам из proxy. Полную исходную таблицу трафика нужно дополнительно вернуть из Apps Script как traffic_data.</p>${expandableTable('traffic_tree',e2TrafficSections())}</div>`;
   mc('c-trch',{type:'doughnut',data:{labels:['FB '+F.$(sm(D.tr_fb)),'TG '+F.$(sm(D.tr_tg)),'Тизерки '+F.$(sm(D.tr_teasers)),'Influence '+F.$(sm(D.tr_influence)),'ПП '+F.$(sm(D.tr_pp)),'Google '+F.$(sm(D.tr_google))],datasets:[{data:[sm(D.tr_fb),sm(D.tr_tg),sm(D.tr_teasers),sm(D.tr_influence),sm(D.tr_pp),sm(D.tr_google)],backgroundColor:['rgba(34,211,238,.5)','rgba(168,85,247,.4)','rgba(6,182,212,.4)','rgba(167,139,250,.4)','rgba(215,230,190,.3)','rgba(248,113,113,.3)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:9}}}},cutout:'55%'}});
   mc('c-ftd',{type:'bar',data:{labels:m,datasets:[{label:'FTD новых',data:sl(D.ftd_new),backgroundColor:'rgba(34,211,238,.4)',borderRadius:3},{label:'FTD старых',data:sl(D.ftd_old),backgroundColor:'rgba(167,139,250,.3)',borderRadius:3},{label:'% CRM',data:sl(D.crm_pct),type:'line',borderColor:'rgba(52,211,153,.7)',borderWidth:2,pointRadius:4,pointBackgroundColor:'rgba(52,211,153,.7)',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{stacked:true,title:{display:true,text:'FTD'}},y1:{position:'right',grid:{display:false},min:50,max:100}}}});
   mc('c-tr-dyn',{type:'line',data:{labels:m,datasets:[{label:'FB',data:sl(D.tr_fb),borderColor:'rgba(34,211,238,.7)',tension:.3},{label:'TG',data:sl(D.tr_tg),borderColor:'rgba(168,85,247,.7)',tension:.3},{label:'Тизерки',data:sl(D.tr_teasers),borderColor:'rgba(6,182,212,.7)',tension:.3},{label:'Influence',data:sl(D.tr_influence),borderColor:'rgba(167,139,250,.7)',tension:.3},{label:'ПП',data:sl(D.tr_pp),borderColor:'rgba(215,230,190,.6)',tension:.3},{label:'Google',data:sl(D.tr_google),borderColor:'rgba(248,113,113,.6)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
@@ -948,9 +987,14 @@ function renderTraffic(){
 function renderCKP(){
   let html=`<div class="asec" data-reveal><h3>📋 ЦКП — Дорожная карта Rocket Project 2026</h3>`;
   if(D.ckp_data&&Array.isArray(D.ckp_data)&&D.ckp_data.length>1){
-    html+=renderRawTable(D.ckp_data,'ckp_tbl',[
-      ['период','period']
-    ]);
+    const blocks=ckpBlocks(D.ckp_data);
+    if(blocks.length){
+      html+=blocks.map((b,bi)=>`<div class="ckp-block"><div class="ckp-text"><h3>${esc(b.title)}</h3>${simpleTable(['Показатель','Значение'],b.rows.slice(0,10).map(r=>[r.label,r.value]))}</div><div class="ckp-chart"><canvas id="c-ckp-${bi}"></canvas></div></div>${speakerBlock('ckp_'+bi,'Заметки докладчика к '+b.title,'Пояснить статус ЦКП, ключевые показатели и следующий шаг.')}`).join('');
+      html+=`<div class="asec" data-reveal><h3>Полная раскрываемая таблица ЦКП</h3>${rawTableToExpandable(D.ckp_data,'ckp_full_tree',[['период','period']])}</div>`;
+    }else{
+      html+=rawTableToExpandable(D.ckp_data,'ckp_tbl',[['период','period']]);
+      html+=speakerBlock('ckp_general','Заметки докладчика к ЦКП','Пояснить динамику ЦКП и где нужны управленческие решения.');
+    }
     // Попытка построить диаграмму статусов
     const headerIdx=findTableHeader(D.ckp_data,[['период','period']],1);
     const hdrCkp=D.ckp_data[headerIdx].map(h=>String(h||'').toLowerCase().trim());
@@ -966,11 +1010,35 @@ function renderCKP(){
     });
     html+=`</div><div class="card" style="max-width:400px;margin-top:16px" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Статусы задач ЦКП</div><div class="cw short"><canvas id="c-ckp-status"></canvas></div></div>`;
     document.getElementById('p-ckp').innerHTML=html;
+    blocks.forEach((b,bi)=>{
+      const vals=b.rows.slice(0,8).map(r=>parseRuNumber(r.value)).map(v=>Number.isFinite(v)?v:0);
+      mc('c-ckp-'+bi,{type:'bar',data:{labels:b.rows.slice(0,8).map(r=>r.label),datasets:[{label:b.title,data:vals,backgroundColor:'rgba(34,211,238,.38)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{display:false}},y:{title:{display:true,text:'значение'}}}}});
+    });
     mc('c-ckp-status',{type:'doughnut',data:{labels:['Выполнено','В работе','Просрочено','Не начато'],datasets:[{data:[statuses.done,statuses.wip,statuses.late,statuses.todo],backgroundColor:['rgba(52,211,153,.5)','rgba(251,146,60,.5)','rgba(248,113,113,.5)','rgba(100,116,139,.3)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}}},cutout:'50%'}});
   } else {
     html+=`<p style="color:var(--text-dim);font-size:12px">Данные загружаются из Google Sheets «Дорожная карта 2026», лист ЦКП.<br>Нажмите «Обновить данные» для загрузки актуальных данных.</p></div>`;
     document.getElementById('p-ckp').innerHTML=html;
   }
+}
+function ckpBlocks(data){
+  const headerIdx=findTableHeader(data,[['цкп','ckp','название','показатель'],['знач','value','план','факт']],1);
+  const rows=data.slice(headerIdx+1).filter(r=>r&&r.some(c=>c!==''&&c!==null&&c!==undefined));
+  const blocks=[];
+  let current=null;
+  rows.slice(0,120).forEach((r,idx)=>{
+    const first=String(r[0]??r[1]??'').trim();
+    if(!first)return;
+    const isTitle=/цкп|цель|objective|key result/i.test(first)||(!parseRuNumber(first)&&r.slice(1).filter(c=>String(c||'').trim()).length<=2&&idx>0);
+    if(isTitle||!current){
+      current={title:first||('ЦКП '+(blocks.length+1)),rows:[]};
+      blocks.push(current);
+    }else{
+      const label=first;
+      const val=r.slice(1).find(c=>String(c??'').trim()!=='')??'';
+      current.rows.push({label,value:val});
+    }
+  });
+  return blocks.filter(b=>b.rows.length).slice(0,12);
 }
 
 // ===== TASKS =====
@@ -1163,6 +1231,56 @@ function renderRawTable(data,id,headerGroups){
   html+=`</tbody></table></div>`;
   return html;
 }
+function rawTableToExpandable(data,id,headerGroups){
+  if(!data||!data.length)return'';
+  const headerIdx=headerGroups?findTableHeader(data,headerGroups,1):0;
+  const headers=(data[headerIdx]||[]).map(h=>String(h||'').trim());
+  const rows=data.slice(headerIdx+1).filter(r=>r&&r.some(c=>c!==''&&c!==null&&c!==undefined));
+  if(!rows.length)return'<p class="tech-note">Нет данных</p>';
+  const maxCols=Math.min(headers.length||Math.max(...rows.map(r=>r.length)),18);
+  const tableHeaders=(headers.length?headers:Array.from({length:maxCols},(_,i)=>i?'Колонка '+(i+1):'Показатель')).slice(0,maxCols);
+  const groups=[];
+  let current=null;
+  rows.slice(0,160).forEach((row,idx)=>{
+    const label=String(row[0]??'').trim()||('Строка '+(idx+1));
+    const nums=row.slice(1,maxCols).map(v=>parseRuNumber(v));
+    const hasNums=nums.some(v=>Number.isFinite(v)&&Math.abs(v)>0.000001);
+    const looksChild=/^[-–—]/.test(label)||/январ|феврал|март|апрел|май|июн|июл|август|сентябр|октябр|ноябр|декабр/i.test(label);
+    if(!current||(!looksChild&&hasNums&&current.children.length)){
+      current={row,children:[]};
+      groups.push(current);
+    }else if(looksChild||current){
+      current.children.push({row});
+    }
+  });
+  let html=`<div class="raw-table-wrap"><table class="dt tree-table" id="${id}"><thead><tr>${tableHeaders.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>`;
+  groups.forEach((g,gi)=>{
+    const rowId=`${id}-${gi}`;
+    html+=rawExpandableRow(g.row,tableHeaders,rowId,g.children.length>0,'tot');
+    g.children.forEach(c=>{html+=rawExpandableRow(c.row,tableHeaders,rowId,false,`hidden-row ${rowId} lvl1`)});
+  });
+  return html+'</tbody></table></div>';
+}
+function rawExpandableRow(row,headers,rowId,hasToggle,cls){
+  return `<tr class="${cls||''}">${headers.map((_,ci)=>{
+    const v=row[ci];
+    const prefix=ci===0&&hasToggle?`<span class="tree-toggle" onclick="toggleRows('${rowId}')">+</span>`:'';
+    const n=parseRuNumber(v);
+    const c=Number.isFinite(n)&&n<0?'dn':Number.isFinite(n)&&n>0?'up':'nt';
+    return `<td class="${ci&&Number.isFinite(n)?c:''}">${prefix}${esc(formatRawCell(v))}</td>`;
+  }).join('')}</tr>`;
+}
+function parseRuNumber(v){
+  if(typeof v==='number')return v;
+  const s=String(v??'').replace(/\s/g,'').replace(',','.');
+  if(!s||/%|http|[A-Za-zА-Яа-я]/.test(s.replace(/[eE+-]/g,'')))return NaN;
+  const n=Number(s);
+  return Number.isFinite(n)?n:NaN;
+}
+function formatRawCell(v){
+  if(typeof v==='number')return v.toLocaleString('ru-RU');
+  return v??'';
+}
 
 // ===== EDITION 2 LAYER =====
 function noteForBlock(blockId){
@@ -1206,6 +1324,25 @@ function periodEnd(a){return metricAt(a,li())}
 function marginValue(key,fallback){
   const arr=D[key];
   return usefulSeries(arr)?periodEnd(arr):fallback;
+}
+function metricMonth(a,idx=li()){return metricAt(a,idx)}
+function marginMonthValue(key,idx,fallback){
+  const arr=D[key];
+  return usefulSeries(arr)?metricMonth(arr,idx):fallback;
+}
+function monthTrend(current,previous,prevLabel){
+  return F.trend(current,previous,prevLabel||'пред. мес.');
+}
+function percentPointTrend(current,previous,prevLabel){
+  if(previous==null||!Number.isFinite(+previous))return{t:'',c:'nt'};
+  current=+current||0;previous=+previous||0;
+  const d=current-previous;
+  return{t:(d>=0?'↑':'↓')+Math.abs(d).toFixed(1)+' п.п. к '+(prevLabel||'пред. мес.'),c:d>=0?'up':'dn'};
+}
+function reportSub(a,mode='sum'){
+  const monthLabel=D.months[li()]||'посл. мес.';
+  const monthValue=mode==='end'?periodEnd(a):metricMonth(a,li());
+  return `период ${F.$(sm(a))} · ${monthLabel}: ${F.$(monthValue)}`;
 }
 function totalNcfSeries(){
   if(usefulSeries(D.total_ncf))return D.total_ncf;
@@ -1266,22 +1403,105 @@ function e2PnlSections(){
     {title:'Чистая прибыль',values:D.net_profit,children:[]}
   ];
 }
+function e2CashflowSections(){
+  const total=totalNcfSeries();
+  return [
+    {title:'Opening Cash Balance',values:D.cash.map((v,i)=>i>0?D.cash[i-1]:0),children:[]},
+    {title:'Pos CF - Income',values:makeSeries(i=>Math.max(0,(+D.ncf_op[i]||0)+Math.abs(+D.ncf_inv[i]||0)+Math.abs(+D.ncf_fin[i]||0))),children:[
+      {title:'Pos CF Operating Income',values:D.ncf_op.map(v=>Math.max(0,+v||0))},
+      {title:'Pos CF Investing Income',values:D.ncf_inv.map(v=>Math.max(0,+v||0))},
+      {title:'Pos CF Financing Income',values:D.ncf_fin.map(v=>Math.max(0,+v||0))}
+    ]},
+    {title:'Neg CF - Expenses',values:makeSeries(i=>-Math.abs(Math.min(0,+D.ncf_op[i]||0)-Math.abs(Math.min(0,+D.ncf_inv[i]||0))-Math.abs(Math.min(0,+D.ncf_fin[i]||0)))),children:[
+      {title:'Neg CF Operating Expenses',values:D.ncf_op.map(v=>Math.min(0,+v||0))},
+      {title:'Neg CF Investing Outflows',values:D.ncf_inv.map(v=>Math.min(0,+v||0))},
+      {title:'Neg CF Financing Outflows',values:D.ncf_fin.map(v=>Math.min(0,+v||0))}
+    ]},
+    {title:'NCF Operational',values:D.ncf_op,children:[]},
+    {title:'NCF Investment',values:D.ncf_inv,children:[]},
+    {title:'NCF Financial',values:D.ncf_fin,children:[
+      {title:'Dividends',values:D.dividends.map(v=>-Math.abs(+v||0))}
+    ]},
+    {title:'Total NCF — Monthly Cash Change',values:total,children:[
+      {title:'NCF — Monthly Cash Change',values:makeSeries(i=>(+D.ncf_op[i]||0)+(+D.ncf_inv[i]||0)+(+D.ncf_fin[i]||0))}
+    ]},
+    {title:'Cash at End of Month',values:D.cash,children:[]}
+  ];
+}
+function e2BalanceSections(){
+  return [
+    {title:'Assets',values:D.assets_total,children:[
+      {title:'Cash and cash equivalents',values:D.cash}
+    ]},
+    {title:'Liabilities & Equity',values:makeSeries(i=>(+D.liabilities[i]||0)+(+D.equity[i]||0)),children:[
+      {title:'Equity',values:D.equity},
+      {title:'Liabilities',values:D.liabilities},
+      {title:'Long-term debt / liabilities',values:D.lt_debt},
+      {title:'Short-term debt / liabilities',values:D.st_debt},
+      {title:'Accounts payable',values:D.kz}
+    ]},
+    {title:'D/E',values:D.de_ratio,children:[]},
+    {title:'Current ratio',values:D.current_ratio,children:[]},
+    {title:'Autonomy',values:D.autonomy,children:[]},
+    {title:'Financial stability',values:D.fin_stability,children:[]}
+  ];
+}
+function e2TrafficSections(){
+  return [
+    {title:'Выручка за выч. реджектов',values:D.revenue,children:[
+      {title:'FB',values:D.rev_core},
+      {title:'Influence',values:D.rev_influence},
+      {title:'Streams',values:D.rev_streams},
+      {title:'Mannequin',values:D.rev_mannequin}
+    ]},
+    {title:'Ftd count',values:D.ftd_total,children:[
+      {title:'FTD новых',values:D.ftd_new},
+      {title:'FTD старых',values:D.ftd_old}
+    ]},
+    {title:'Dep count',values:makeSeries(i=>0),children:[]},
+    {title:'Итого трафик',values:D.traffic_cost.map(v=>-Math.abs(+v||0)),children:[
+      {title:'FB',values:D.tr_fb.map(v=>-Math.abs(+v||0))},
+      {title:'TG Ads',values:D.tr_tg.map(v=>-Math.abs(+v||0))},
+      {title:'Тизерки',values:D.tr_teasers.map(v=>-Math.abs(+v||0))},
+      {title:'Influence',values:D.tr_influence.map(v=>-Math.abs(+v||0))},
+      {title:'ПП',values:D.tr_pp.map(v=>-Math.abs(+v||0))},
+      {title:'Google',values:D.tr_google.map(v=>-Math.abs(+v||0))}
+    ]},
+    {title:'Маржинальный доход',values:makeSeries(i=>(+D.revenue[i]||0)-Math.abs(+D.traffic_cost[i]||0)),children:[]},
+    {title:'Рентабельность МД, %',values:D.margin_pct,children:[]},
+    {title:'Чистая прибыль',values:D.net_profit,children:[]},
+    {title:'Рентабельность ЧП, %',values:D.np_margin_pct,children:[]}
+  ];
+}
 function renderOverview(){
-  const rev=sm(D.revenue),np=sm(D.net_profit),vc=sm(D.var_costs),op=sm(D.op_profit),i=li();
-  const margPct=marginValue('margin_pct',rev?((rev-vc)/rev*100):0);
-  const opPct=marginValue('op_margin_pct',rev?(op/rev*100):0);
-  const npPct=marginValue('np_margin_pct',rev?(np/rev*100):0);
+  const i=li(),p=pi(),prevLabel=p!=null?D.months[p]:'';
+  const rev=metricMonth(D.revenue,i),np=metricMonth(D.net_profit,i),vc=metricMonth(D.var_costs,i),op=metricMonth(D.op_profit,i);
+  const margPct=marginMonthValue('margin_pct',i,rev?((rev-vc)/rev*100):0);
+  const opPct=marginMonthValue('op_margin_pct',i,rev?(op/rev*100):0);
+  const npPct=marginMonthValue('np_margin_pct',i,rev?(np/rev*100):0);
+  const prevRev=p!=null?metricMonth(D.revenue,p):null;
+  const prevNp=p!=null?metricMonth(D.net_profit,p):null;
+  const prevMarg=p!=null?marginMonthValue('margin_pct',p,0):null;
+  const prevOp=p!=null?marginMonthValue('op_margin_pct',p,0):null;
+  const prevNpPct=p!=null?marginMonthValue('np_margin_pct',p,0):null;
+  const prevCash=p!=null?metricMonth(D.cash,p):null;
+  const tRev=monthTrend(rev,prevRev,prevLabel);
+  const tNp=monthTrend(np,prevNp,prevLabel);
+  const tMarg=percentPointTrend(margPct,prevMarg,prevLabel);
+  const tOp=percentPointTrend(opPct,prevOp,prevLabel);
+  const tNpPct=percentPointTrend(npPct,prevNpPct,prevLabel);
+  const tCash=monthTrend(periodEnd(D.cash),prevCash,prevLabel);
   const lastDE=periodEnd(D.de_ratio),debt=periodEnd(D.lt_debt)+periodEnd(D.st_debt);
   document.getElementById('p-overview').innerHTML=`
 ${dsBadge(dataSource)}
 <div class="kpi-row" data-reveal>
-  <div class="kpi"><div class="kpi-label">Выручка</div><div class="kpi-val">${F.$(rev)}</div><div class="kpi-sub nt">period_sum</div></div>
-  <div class="kpi"><div class="kpi-label">Чистая прибыль</div><div class="kpi-val">${F.$(np)}</div><div class="kpi-sub ${npPct>10?'up':'wr'}">маржа ${F.pct(npPct)}</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. маржинальная</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub up">source_percent_row</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. операционная</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub up">source_percent_row</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub nt">source_percent_row</div></div>
+  <div class="kpi"><div class="kpi-label">Выручка · ${esc(D.months[i]||'месяц')}</div><div class="kpi-val">${F.$(rev)}</div><div class="kpi-sub ${tRev.c}">${tRev.t}</div></div>
+  <div class="kpi"><div class="kpi-label">Чистая прибыль · ${esc(D.months[i]||'месяц')}</div><div class="kpi-val">${F.$(np)}</div><div class="kpi-sub ${tNp.c}">${tNp.t} · маржа ${F.pct(npPct)}</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. маржинальная</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub ${tMarg.c}">${tMarg.t} · source row</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. операционная</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub ${tOp.c}">${tOp.t} · source row</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub ${tNpPct.c}">${tNpPct.t} · source row</div></div>
   <div class="kpi"><div class="kpi-label">D/E</div><div class="kpi-val">${lastDE.toFixed(2)}</div><div class="kpi-sub ${lastDE>2?'dn':'up'}">долг ${F.$(debt)}</div></div>
-  <div class="kpi"><div class="kpi-label">Кэш</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub up">${D.months[i]} · period_end</div></div>
+  <div class="kpi"><div class="kpi-label">Кэш</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub ${tCash.c}">${tCash.t} · конец ${esc(D.months[i]||'периода')}</div></div>
 </div>
 <div class="e2-row">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Выручка и рент. ЧП</div><div class="cw"><canvas id="c-rev"></canvas></div></div>
@@ -1308,11 +1528,11 @@ function renderPnL(){
   const npPct=marginValue('np_margin_pct',revS?(npS/revS*100):0);
   document.getElementById('p-pnl').innerHTML=`
 <div class="kpi-row" data-reveal>
-  <div class="kpi"><div class="kpi-label">Выручка</div><div class="kpi-val">${F.$(revS)}</div><div class="kpi-sub nt">period_sum</div></div>
-  <div class="kpi"><div class="kpi-label">Переменные</div><div class="kpi-val">${F.$(vcS)}</div><div class="kpi-sub dn">${F.pct(revS?vcS/revS*100:0)} выручки</div></div>
-  <div class="kpi"><div class="kpi-label">Маржинальная рент.</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub up">source_percent_row</div></div>
-  <div class="kpi"><div class="kpi-label">Опер. рент.</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub up">source_percent_row</div></div>
-  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub up">source_percent_row</div></div>
+  <div class="kpi"><div class="kpi-label">Выручка · период</div><div class="kpi-val">${F.$(revS)}</div><div class="kpi-sub nt">${reportSub(D.revenue)}</div></div>
+  <div class="kpi"><div class="kpi-label">Переменные · период</div><div class="kpi-val">${F.$(vcS)}</div><div class="kpi-sub dn">${reportSub(D.var_costs)}</div></div>
+  <div class="kpi"><div class="kpi-label">Маржинальная рент.</div><div class="kpi-val">${F.pct(margPct)}</div><div class="kpi-sub up">в т.ч. ${D.months[li()]}: ${F.pct(marginMonthValue('margin_pct',li(),0))}</div></div>
+  <div class="kpi"><div class="kpi-label">Опер. рент.</div><div class="kpi-val">${F.pct(opPct)}</div><div class="kpi-sub up">в т.ч. ${D.months[li()]}: ${F.pct(marginMonthValue('op_margin_pct',li(),0))}</div></div>
+  <div class="kpi"><div class="kpi-label">Рент. по ЧП</div><div class="kpi-val">${F.pct(npPct)}</div><div class="kpi-sub up">в т.ч. ${D.months[li()]}: ${F.pct(marginMonthValue('np_margin_pct',li(),0))}</div></div>
 </div>
 <div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Водопад P&L</div><div class="cw tall"><canvas id="c-wf"></canvas></div></div>
 ${speakerBlock('pnl_waterfall','Заметки докладчика к блоку P&L waterfall','Сказать Фаундеру: водопад показывает путь от выручки к чистой прибыли. Расходы идут вниз красным, прибыль и доходы вверх зеленым.')}
@@ -1328,7 +1548,8 @@ ${speakerBlock('pnl_waterfall','Заметки докладчика к блок�
   mc('c-pnl-margins',{type:'line',data:{labels:m,datasets:[{label:'Маржинальная',data:sl(D.margin_pct),borderColor:'rgba(34,211,238,.8)',tension:.25},{label:'Операционная',data:sl(D.op_margin_pct),borderColor:'rgba(52,211,153,.8)',tension:.25},{label:'ЧП',data:sl(D.np_margin_pct),borderColor:'rgba(251,146,60,.8)',tension:.25}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'%'}}}}});
 }
 function renderPnLCombo(){
-  const html=`<div class="asec" data-reveal><h3>Проекты Rocket</h3><p class="tech-note">Edition 2 отображает проекты как управленческие блоки. Если proxy пока отдает только raw-таблицу, строки группируются фронтом по названиям и показываются раскрываемо.</p>${D.pnl_combo?renderRawTable(D.pnl_combo,'projects_raw'):''}</div>
+  const projectTable=D.pnl_combo?rawTableToExpandable(D.pnl_combo,'projects_tree'):'<p class="tech-note">Источник ОПиУ по проектам пока не вернул сырую таблицу.</p>';
+  const html=`<div class="asec" data-reveal><h3>Проекты Rocket</h3><p class="tech-note">Проекты показываются как раскрываемая управленческая таблица по аналогии с ОПиУ: проект/блок сверху, входящие строки раскрываются по кнопке.</p>${projectTable}</div>
 <div class="grid2"><div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Выручка проектов</div><div class="cw tall"><canvas id="c-combo-rev"></canvas></div></div><div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Доля проектов</div><div class="cw tall"><canvas id="c-combo-share"></canvas></div></div></div>
 ${speakerBlock('projects_rocket','Заметки докладчика к проектам Rocket','Говорить по проектам: какой проект дает выручку, где расходная нагрузка, где маржа проседает.')}`;
   document.getElementById('p-pnl_combo').innerHTML=html;
@@ -1339,19 +1560,20 @@ ${speakerBlock('projects_rocket','Заметки докладчика к про�
 }
 function renderPnLConsol(){
   const m=gm();
-  document.getElementById('p-pnl_consol').innerHTML=`<div class="asec" data-reveal><h3>Ludens Group</h3><p class="tech-note">Консолидированный P&L группы. В Edition 2 эта вкладка использует те же правила месяцев, раскрываемых строк и source matching.</p>${D.pnl_consol?renderRawTable(D.pnl_consol,'ludens_raw'):''}</div><div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Ludens Group: выручка / маржа / ЧП</div><div class="cw tall"><canvas id="c-consol-dyn"></canvas></div></div>${speakerBlock('ludens_group','Заметки докладчика к Ludens Group','Сделать акцент на консолидированной картине группы и расхождениях между проектами.')}`;
+  const ludensTable=D.pnl_consol?rawTableToExpandable(D.pnl_consol,'ludens_tree'):'<p class="tech-note">Источник Ludens Group пока не вернул сырую таблицу.</p>';
+  document.getElementById('p-pnl_consol').innerHTML=`<div class="asec" data-reveal><h3>Ludens Group</h3><p class="tech-note">Консолидированный P&L группы. Таблица раскрываемая, чтобы можно было видеть строки, входящие в агрегаты.</p>${ludensTable}</div><div class="card full" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Ludens Group: выручка / маржа / ЧП</div><div class="cw tall"><canvas id="c-consol-dyn"></canvas></div></div>${speakerBlock('ludens_group','Заметки докладчика к Ludens Group','Сделать акцент на консолидированной картине группы и расхождениях между проектами.')}`;
   mc('c-consol-dyn',{type:'bar',data:{labels:m,datasets:[{label:'Выручка',data:sl(D.revenue),backgroundColor:'rgba(34,211,238,.35)'},{label:'Маржинальная прибыль',data:sl(D.revenue).map((r,i)=>r-sl(D.var_costs)[i]),backgroundColor:'rgba(167,139,250,.35)'},{label:'ЧП',data:sl(D.net_profit),backgroundColor:'rgba(52,211,153,.35)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
 }
 function renderCF(){
   const total=totalNcfSeries(),totalS=sl(total).reduce((s,v)=>s+(+v||0),0),opS=sm(D.ncf_op),invS=sm(D.ncf_inv),finS=sm(D.ncf_fin),divS=sm(D.dividends),i=li();
   document.getElementById('p-cf').innerHTML=`<div class="kpi-row" data-reveal>
-  <div class="kpi"><div class="kpi-label">Total NCF</div><div class="kpi-val">${F.$(totalS)}</div><div class="kpi-sub up">приоритет Total NCF</div></div>
-  <div class="kpi"><div class="kpi-label">NCF операционный</div><div class="kpi-val">${F.$(opS)}</div><div class="kpi-sub nt">period_sum</div></div>
-  <div class="kpi"><div class="kpi-label">NCF инвестиционный</div><div class="kpi-val">${F.$(invS)}</div><div class="kpi-sub dn">period_sum</div></div>
-  <div class="kpi"><div class="kpi-label">NCF финансовый</div><div class="kpi-val">${F.$(finS)}</div><div class="kpi-sub dn">period_sum</div></div>
-  <div class="kpi"><div class="kpi-label">Дивиденды</div><div class="kpi-val">${F.$(divS)}</div><div class="kpi-sub nt">отдельная строка</div></div>
+  <div class="kpi"><div class="kpi-label">Total NCF · период</div><div class="kpi-val">${F.$(totalS)}</div><div class="kpi-sub up">период ${F.$(totalS)} · ${D.months[i]}: ${F.$(metricMonth(total,i))}</div></div>
+  <div class="kpi"><div class="kpi-label">NCF операционный · период</div><div class="kpi-val">${F.$(opS)}</div><div class="kpi-sub nt">${reportSub(D.ncf_op)}</div></div>
+  <div class="kpi"><div class="kpi-label">NCF инвестиционный · период</div><div class="kpi-val">${F.$(invS)}</div><div class="kpi-sub dn">${reportSub(D.ncf_inv)}</div></div>
+  <div class="kpi"><div class="kpi-label">NCF финансовый · период</div><div class="kpi-val">${F.$(finS)}</div><div class="kpi-sub dn">${reportSub(D.ncf_fin)}</div></div>
+  <div class="kpi"><div class="kpi-label">Дивиденды · период</div><div class="kpi-val">${F.$(divS)}</div><div class="kpi-sub nt">${reportSub(D.dividends)}</div></div>
   <div class="kpi"><div class="kpi-label">Cash на конец периода</div><div class="kpi-val">${F.$(periodEnd(D.cash))}</div><div class="kpi-sub up">${D.months[i]} · period_end</div></div>
-</div><div class="e2-row"><div class="card"><div class="card-title"><span class="dot" style="background:var(--green)"></span>NCF по блокам</div><div class="cw"><canvas id="c-cf"></canvas></div></div><div class="card"><div class="card-title"><span class="dot" style="background:var(--orange)"></span>Total NCF</div><div class="cw"><canvas id="c-total-ncf"></canvas></div></div><div class="card"><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Cash at End of Month</div><div class="cw"><canvas id="c-cash-end"></canvas></div></div>${speakerBlock('cashflow_total_ncf','Заметки докладчика к ДДС','Объяснить, что общий денежный поток берется из Total NCF, а не только из трех верхних блоков. Cash показывается на конец выбранного периода.')}</div>`;
+</div><div class="e2-row"><div class="card"><div class="card-title"><span class="dot" style="background:var(--green)"></span>NCF по блокам</div><div class="cw"><canvas id="c-cf"></canvas></div></div><div class="card"><div class="card-title"><span class="dot" style="background:var(--orange)"></span>Total NCF</div><div class="cw"><canvas id="c-total-ncf"></canvas></div></div><div class="card"><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Cash at End of Month</div><div class="cw"><canvas id="c-cash-end"></canvas></div></div>${speakerBlock('cashflow_total_ncf','Заметки докладчика к ДДС','Объяснить, что общий денежный поток берется из Total NCF, а не только из трех верхних блоков. Cash показывается на конец выбранного периода.')}</div><div class="asec" data-reveal><h3>Раскрываемая таблица ДДС</h3>${expandableTable('cf_tree',e2CashflowSections())}</div>`;
   const m=gm();
   mc('c-cf',{type:'bar',data:{labels:m,datasets:[{label:'Опер.',data:sl(D.ncf_op),backgroundColor:'rgba(52,211,153,.45)'},{label:'Инвест.',data:sl(D.ncf_inv),backgroundColor:'rgba(167,139,250,.35)'},{label:'Фин.',data:sl(D.ncf_fin),backgroundColor:'rgba(248,113,113,.35)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true}}}});
   mc('c-total-ncf',{type:'line',data:{labels:m,datasets:[{label:'Total NCF',data:sl(total),borderColor:'rgba(251,191,36,.85)',backgroundColor:'rgba(251,191,36,.12)',fill:true,tension:.25}]},options:{responsive:true,maintainAspectRatio:false}});
@@ -1362,19 +1584,43 @@ function renderResults(){
     {title:'Внедренность инструментов',url:C.TOOLS,description:'Отдельный дашборд по внедренности инструментов.'},
     {title:'Тайм-менеджмент и выполнение задач',url:'https://script.google.com/a/macros/rocketpeople.tech/s/AKfycbxTers8chtwgwkIh5cDNJI-9McA6Rj0GPSywQey0g3ygKqKSTaB9ZS8P2e5s7nopzWa/exec',description:'Отдельный дашборд выполнения задач.'}
   ]);
-  const revS=sm(D.revenue),npS=sm(D.net_profit),i=li(),npm=marginValue('np_margin_pct',revS?npS/revS*100:0);
+  const revS=sm(D.revenue),npS=sm(D.net_profit),opS=sm(D.op_profit),i=li(),npm=marginValue('np_margin_pct',revS?npS/revS*100:0);
+  const cashDays=revS?periodEnd(D.cash)/(revS/(Math.max(1,gm().length)*30)):0;
+  const ths=[
+    {m:'Рентабельность ЧП',v:F.pct(npm),s:npm<10?'alert':npm<15?'warning':'ok',t:npm<10?'Рентабельность ниже целевого уровня':'Рентабельность в рабочем коридоре',r:1},
+    {m:'Операционная маржа',v:F.pct(marginValue('op_margin_pct',revS?opS/revS*100:0)),s:opS/revS<.08?'alert':opS/revS<.15?'warning':'ok',t:'Операционная маржа контролируется по строке источника',r:4},
+    {m:'Маржинальность',v:F.pct(marginValue('margin_pct',0)),s:marginValue('margin_pct',0)<25?'alert':'ok',t:'Маржинальность в целевом коридоре',r:8},
+    {m:'Кэш / дн. расходы',v:cashDays.toFixed(1)+' дн',s:cashDays<5?'alert':cashDays<15?'warning':'ok',t:cashDays<5?'Угроза кассового разрыва':'Буфер надо контролировать',r:11},
+    {m:'Тек. ликвидность',v:D.current_ratio[i].toFixed(2),s:D.current_ratio[i]<1?'alert':D.current_ratio[i]<1.5?'warning':'ok',t:D.current_ratio[i]>=1.5?'Ликвидность в норме':'Ликвидность ниже нормы',r:16},
+    {m:'Автономия',v:D.autonomy[i].toFixed(2),s:D.autonomy[i]<.2?'alert':D.autonomy[i]<.3?'warning':'ok',t:D.autonomy[i]<.3?'Критическая зависимость от заёмных средств':'Структура капитала приемлема',r:20},
+    {m:'D/E',v:D.de_ratio[i].toFixed(2),s:D.de_ratio[i]>2.5?'alert':D.de_ratio[i]>1.5?'warning':'ok',t:D.de_ratio[i]>2.5?'Чрезмерный финансовый рычаг':'Долговая нагрузка под контролем',r:23},
+    {m:'% кред./EBIT',v:F.pct(opS?sm(D.interest)/opS*100:0),s:opS&&sm(D.interest)/opS>.5?'alert':opS&&sm(D.interest)/opS>.3?'warning':'ok',t:'Процентная нагрузка приемлемая / требует контроля',r:28},
+    {m:'Дивиденды/ЧП',v:F.pct(npS?sm(D.dividends)/npS*100:0),s:npS&&sm(D.dividends)/npS>1?'alert':npS&&sm(D.dividends)/npS>.7?'warning':'ok',t:'Проверить дивидендную политику',r:29},
+    {m:'CRM-доля',v:F.pct(metricMonth(D.crm_pct,i)),s:metricMonth(D.crm_pct,i)>75?'alert':metricMonth(D.crm_pct,i)>60?'warning':'ok',t:'Критическая зависимость от базы',r:33},
+    {m:'Трафик/выручка',v:F.pct(revS?sm(D.traffic_cost)/revS*100:0),s:revS&&sm(D.traffic_cost)/revS>.5?'alert':revS&&sm(D.traffic_cost)/revS>.4?'warning':'ok',t:'Давление трафиковых расходов',r:37},
+    {m:'Фин. устойчивость',v:D.fin_stability[i].toFixed(2),s:D.fin_stability[i]<.6?'warning':'ok',t:'Финансовая устойчивость',r:32},
+    {m:'DFL',v:D.dfl[i].toFixed(2),s:D.dfl[i]<0?'alert':'ok',t:D.dfl[i]<0?'Отрицательный рычаг':'Положительный рычаг',r:0}
+  ];
   const cards=links.map(l=>`<div class="dash-link-card"><div><h4>${esc(l.title||l.name||'Дашборд')}</h4><p>${esc(l.description||l.comment||'Ссылка из Dashboard Config')}</p></div><a target="_blank" href="${esc(l.url||l.link||'#')}">Открыть дашборд</a></div>`).join('');
   document.getElementById('p-results').innerHTML=`<div class="asec" data-reveal><h3>Внешние результаты из Dashboard Config</h3><div class="link-grid">${cards}</div></div>
-<div class="asec" data-reveal><h3>Целевые метрики</h3><div class="th-grid">
-  <div class="th-item ${npm<10?'alert':'ok'}"><div class="th-dot"></div><div><div class="th-lbl">Рентабельность ЧП: ${F.pct(npm)}</div><div class="th-txt">Источник: процентная строка / fallback</div></div></div>
-  <div class="th-item ${D.de_ratio[i]>2.5?'alert':D.de_ratio[i]>1.5?'warning':'ok'}"><div class="th-dot"></div><div><div class="th-lbl">D/E: ${D.de_ratio[i].toFixed(2)}</div><div class="th-txt">Только процентный долг / капитал</div></div></div>
-  <div class="th-item ${periodEnd(D.cash)<50000?'alert':'ok'}"><div class="th-dot"></div><div><div class="th-lbl">Cash end: ${F.$(periodEnd(D.cash))}</div><div class="th-txt">На конец выбранного периода</div></div></div>
-</div></div>${speakerBlock('results_targets','Заметки докладчика к результатам и целевым метрикам','Проговорить, какие метрики в норме, какие требуют управленческого решения.')}`;
+<div class="asec" data-reveal><h3>Целевые метрики и пороговые правила (${ths.length} правил)</h3><div class="th-grid">${ths.map(t=>`<div class="th-item ${t.s}"><div class="th-dot"></div><div><div class="th-lbl">${t.m}: ${t.v} ${t.r?'<span class="basis">#'+t.r+'</span>':''}</div><div class="th-txt">${t.t}</div></div></div>`).join('')}</div></div>${speakerBlock('results_targets','Заметки докладчика к результатам и целевым метрикам','Проговорить, какие метрики в норме, какие требуют управленческого решения.')}`;
 }
 function renderTech(){
   const reports=(D.raw_reports||[]).map(r=>[r.id,r.sheet_name,r.spreadsheet_name,r.rows,(r.matched_metrics||[]).join(', '),r.error||'']);
-  const diag=(D.report_matches||[]).map(r=>[r.metric,r.label,r.score,r.report,r.sheet]);
-  document.getElementById('p-tech').innerHTML=`<div class="asec" data-reveal><h3>Тех. лист Edition 2</h3><p class="tech-note">Версия подготовлена с помощью Codex. Эта вкладка показывает, какие источники и строки вошли в дашборд.</p></div><div class="tech-grid"><div class="asec"><h3>Dashboard Config / Reports</h3>${simpleTable(['report','sheet','file','rows','matched','error'],reports)}</div><div class="asec"><h3>Metric matching</h3>${simpleTable(['metric','source row','score','report','sheet'],diag)}</div></div><div class="asec"><h3>Период</h3>${simpleTable(['month_key','label'],(D.month_keys||[]).map((k,i)=>[k,D.months[i]]))}</div>`;
+  const diag=((D.report_matches&&D.report_matches.length)?D.report_matches:D.metric_diagnostics||[]).map(r=>[r.metric,r.label||r.source_row,r.score,r.report,r.sheet]);
+  const links=(D.dashboard_links||[]).map(l=>[l.title||l.name||'link',l.url||l.link||'',l.description||l.comment||'']);
+  const errors=(D.report_errors||[]).slice().reverse().map(e=>[e]);
+  document.getElementById('p-tech').innerHTML=`<div class="asec" data-reveal><h3>Тех. лист Edition 2</h3><p class="tech-note">Эта вкладка показывает источники, matching, период, ссылки и ошибки. Если ссылок на конкретные исходные Google Sheets нет в таблице reports, нужно доработать Apps Script proxy, чтобы он возвращал URL из Dashboard Config.</p></div>
+<div class="tech-grid">
+  <div class="asec"><h3>Dashboard Config / Reports</h3>${simpleTable(['report','sheet','file','rows','matched','error'],reports)}</div>
+  <div class="asec"><h3>Metric matching</h3>${simpleTable(['metric','source row','score','report','sheet'],diag)}</div>
+</div>
+<div class="tech-grid">
+  <div class="asec"><h3>Ссылки из Dashboard Config</h3>${simpleTable(['title','url','description'],links)}</div>
+  <div class="asec"><h3>Ошибки proxy / источников</h3>${simpleTable(['newest first'],errors)}</div>
+</div>
+<div class="asec"><h3>Период</h3>${simpleTable(['month_key','label'],(D.month_keys||[]).map((k,i)=>[k,D.months[i]]))}</div>
+${D.tech_sheet?`<div class="asec"><h3>Tech sheet raw</h3>${renderRawTable(D.tech_sheet,'tech_raw')}</div>`:''}`;
 }
 function simpleTable(headers,rows){
   if(!rows||!rows.length)return'<p class="tech-note">Нет данных</p>';

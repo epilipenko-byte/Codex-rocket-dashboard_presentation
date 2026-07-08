@@ -34,6 +34,10 @@ Live loading / Apps Script fixes:
 
 Проверено после live-loading исправлений: `2026-07-08 02:21 +03`.
 
+Проверено после утренних исправлений data matching / period / balance: `2026-07-08 13:16 +03`.
+
+Текущая версия Apps Script proxy после этих исправлений: Version 26, опубликована в тот же web app URL.
+
 Готовый zip для GitHub web upload:
 
 `CODEX_EDITION_2_2026-07-07__GITHUB_PAGES_UPLOAD.zip`
@@ -71,6 +75,9 @@ https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/
 - Проверить маржинальности по строкам источника, а не расчетом фронта.
 - Проверить D/E: только interest-bearing debt / equity.
 - Проверить ДДС: `Total NCF — Monthly Cash Change`.
+- Проверить активы баланса: строка matching должна быть `Активы ↓`.
+- Проверить cash: строка matching должна быть `Денежные средства`.
+- Проверить период по умолчанию: если июль частично заполнен только cash/ДДС, default должен оставаться `Янв—Июн 2026`.
 
 ## Локальные файлы Edition 2
 

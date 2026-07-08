@@ -104,6 +104,8 @@ Documentation commits:
 - `c3faf07` — `Add Edition 2 source requirements docs`, uploaded source Word TZ documents to `edition-2-2026-07-07/docs/source/`.
 - `6a3f418` — `Update Edition 2 dashboard live data matching`, uploaded updated `index.html` and `apps_script_proxy.js`.
 - `e65a73f` — `Update Edition 2 documentation after live checks`, uploaded updated Edition 2 documentation package.
+- `462f544` — `Update Edition 2 dashboard overnight fixes`, uploaded updated `index.html` and `apps_script_proxy.js`.
+- `14b63e3` — `Update Edition 2 documentation overnight fixes`, uploaded updated Markdown documentation package.
 
 Проверка опубликованной страницы:
 
@@ -129,6 +131,22 @@ Documentation commits:
 Дата проверки полного GitHub-пакета: `2026-07-08 00:36 +03`.
 
 Дата повторной проверки после утренних исправлений: `2026-07-08 13:27 +03`.
+
+Дата повторной проверки после ночных исправлений и публикации: `2026-07-09 02:25 +03`.
+
+Проверка опубликованной страницы 2026-07-09:
+
+- URL: `https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/edition-2-2026-07-07/`;
+- пароль `password` принят;
+- статус `LIVE — Google Sheets`;
+- обзор показывает июнь 2026: выручка `$652K`, чистая прибыль `$89K`, маржинальная рентабельность `42.2%`, операционная `15.5%`, ЧП `13.6%`, D/E `2.01`, cash `$95K`;
+- `source row` не отображается в пользовательских KPI;
+- ОПиУ показывает переменные расходы за период `$3.04M`, июнь `$377K`;
+- `Проекты Rocket` показывает 6 свернутых проектных секций с исходными названиями;
+- `Ludens Group`, ДДС, баланс, платежный календарь и трафик показывают свернутые исходные таблицы без искусственной перегруппировки;
+- `Трафик` показывает FTD июнь `537`, Dep count июнь `2 971`, FTD период `7 025`;
+- `ЦКП` показывает 6 блоков и свернутую полную исходную таблицу;
+- `Результаты` показывает внешние ссылки и блок `Целевые метрики и пороговые правила`.
 
 ## История публикации
 

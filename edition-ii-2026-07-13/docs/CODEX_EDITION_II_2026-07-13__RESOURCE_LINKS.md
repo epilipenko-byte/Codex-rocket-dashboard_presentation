@@ -72,6 +72,18 @@ Live loading / Apps Script fixes:
 
 Причина имени `edition-ii-2026-07-13`: пользователь попросил назвать сегодняшнюю публикацию Edition II и сохранить все предыдущие опубликованные версии как быстрый откат.
 
+Фактически опубликовано 2026-07-13:
+
+`https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/edition-ii-2026-07-13/`
+
+Коммиты публикации:
+
+- `a448921` — dashboard files;
+- `e5d6e46` — Markdown documentation;
+- `579c8d2` — source Word documents.
+
+Проверка: GitHub raw-файлы отдают HTTP `200`; публичная Pages-ссылка открывается, пароль `password` принят, статус после загрузки `LIVE — Google Sheets`.
+
 Причина выбора папки, а не нового репозитория: отдельная папка в Pages сохраняет Edition 1 без перезаписи и дает ссылку с Edition 2 в имени.
 
 Edition 1 остается без изменений:

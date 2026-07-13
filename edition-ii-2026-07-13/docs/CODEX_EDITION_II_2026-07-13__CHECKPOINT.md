@@ -354,3 +354,31 @@ GitHub web upload открыт в Chrome по адресу:
 - что локальный фронт не пустой после загрузки;
 - что `get_core` развернут в Apps Script или фронт корректно откатывается на `get_all`;
 - после GitHub upload проверить raw-файлы и GitHub Pages URL.
+
+Фактическая публикация выполнена 2026-07-13 отдельной папкой:
+
+`https://epilipenko-byte.github.io/Codex-rocket-dashboard_presentation/edition-ii-2026-07-13/`
+
+GitHub commits:
+
+- `a448921` — `Add Edition II dashboard 2026-07-13`;
+- `e5d6e46` — `Add Edition II documentation 2026-07-13`;
+- `579c8d2` — `Add Edition II source documents 2026-07-13`.
+
+Проверка raw-файлов GitHub:
+
+- `index.html`: HTTP `200`, содержит `FAST_LOAD`, `get_core`, переключатель тем и динамические вкладки;
+- `apps_script_proxy.js`: HTTP `200`, содержит `get_core`, `getCoreData` и performance-метаданные;
+- Markdown checkpoint: HTTP `200`;
+- Word-ТЗ v4: HTTP `200`.
+
+Проверка GitHub Pages:
+
+- URL открылся;
+- пароль `password` принят;
+- отображается 13 вкладок;
+- статус после загрузки: `LIVE — Google Sheets`;
+- на момент проверки обзор показывает июнь 2026: выручка `$652K`, чистая прибыль `$85K`, маржинальная рентабельность `42%`, операционная `15%`, ЧП `11%`, D/E `2.06`, cash `$95K`;
+- найдено 32 canvas-графика.
+
+Ограничение публикации: Apps Script web app URL пока отвечает на `get_core` как `Unknown action: get_core`, поэтому опубликованный фронт использует безопасный fallback на полный `get_all` и остается живым/рабочим. Для ускорения первого экрана нужно отдельно сохранить и развернуть текущий `apps_script_proxy.js` в Apps Script новой версией.

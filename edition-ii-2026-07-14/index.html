@@ -12,7 +12,7 @@
 --border:#1e2d3d;--border-hover:rgba(34,211,238,.3);
 --text:#e2e8f0;--text-muted:#64748b;--text-dim:rgba(100,116,139,.6);
 --accent:#22d3ee;--accent-dim:rgba(34,211,238,.4);
---tab-active:#d8e2d0;--brand:#e88982;--control:#9fb6a8;
+--tab-active:#d8e2d0;--brand:#d8e2d0;--control:#9fb6a8;
 --green:#34d399;--green-bg:rgba(52,211,153,.15);
 --red:#f87171;--red-bg:rgba(248,113,113,.12);
 --orange:#fb923c;--orange-bg:rgba(251,146,60,.12);
@@ -64,18 +64,18 @@ body,button,input,select,textarea,table,.kpi-val,.kpi-sub,.period-tag,.ds-badge,
 body.theme-boardroom .hdr{background:rgba(15,17,20,.96);border-bottom-color:rgba(245,158,11,.28)}
 body.theme-clear .hdr{background:rgba(246,251,248,.95);border-bottom-color:rgba(14,116,144,.22)}
 .hdr-left{display:flex;align-items:center;gap:14px}
-.hdr h1{font-family:'Inter',system-ui,sans-serif;font-size:28px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:baseline;gap:4px}
+.hdr h1{font-family:'Inter',system-ui,sans-serif;font-size:28px;font-weight:700;letter-spacing:0;display:flex;align-items:baseline;gap:4px}
 .logo-rocket{color:var(--brand)}
 .logo-dash{color:rgba(255,255,255,.4);font-size:28px;font-weight:300}
 .hdr h1 em{font-style:italic;color:var(--text)}
 .hdr .period-tag{font-size:10px;color:var(--text-dim);padding:4px 10px;border:1px solid var(--border);border-radius:6px;letter-spacing:.8px}
 .hdr-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.btn{padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--control);font-size:10px;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.2px;text-transform:uppercase}
+.btn{height:34px;padding:0 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--control);font-size:11px;font-weight:700;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.2px;text-transform:uppercase}
 .btn:hover{border-color:var(--border-hover);color:var(--tab-active);background:var(--surface2)}
 .btn-glow{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.18);color:var(--control)}
 .btn-glow:hover{background:rgba(167,139,250,.16)}
 .btn-live{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.20);color:var(--control)}
-.sel{padding:6px 10px;background:rgba(15,25,15,.6);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:10px;outline:none;cursor:pointer}
+.sel{height:34px;padding:0 12px;background:rgba(15,25,15,.6);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11px;font-weight:700;letter-spacing:.2px;outline:none;cursor:pointer}
 .sel:focus{border-color:var(--accent-dim)}
 .theme-select{width:112px}
 .status{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
@@ -98,7 +98,7 @@ body.theme-clear .content{background:linear-gradient(180deg,rgba(238,247,242,.42
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
 .kpi{background:rgba(10,14,23,.22);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:all .4s;position:relative;overflow:hidden}
 body.theme-boardroom .kpi{background:linear-gradient(145deg,rgba(37,32,23,.82),rgba(12,14,13,.66));border-radius:8px}
-body.theme-clear .kpi{background:rgba(255,255,255,.56);border-radius:8px;box-shadow:0 10px 30px rgba(20,55,45,.08)}
+body.theme-clear .kpi{background:rgba(255,255,255,.42);border-radius:8px;box-shadow:0 10px 30px rgba(20,55,45,.08)}
 .kpi:hover{border-color:var(--border-hover);background:var(--surface2);transform:translateY(-2px)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-dim);opacity:.4}
 .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px}
@@ -110,7 +110,7 @@ body.theme-clear .kpi{background:rgba(255,255,255,.56);border-radius:8px;box-sha
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
 .card{background:rgba(10,14,23,.28);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:14px;padding:18px 20px;transition:border-color .3s;position:relative}
 body.theme-boardroom .card,body.theme-boardroom .asec,body.theme-boardroom .speaker-block{background:rgba(28,29,19,.72);border-radius:8px;box-shadow:inset 0 1px 0 rgba(245,158,11,.08)}
-body.theme-clear .card,body.theme-clear .asec,body.theme-clear .speaker-block{background:rgba(255,255,255,.56);border-radius:8px;box-shadow:0 12px 28px rgba(20,55,45,.08)}
+body.theme-clear .card,body.theme-clear .asec,body.theme-clear .speaker-block{background:rgba(255,255,255,.42);border-radius:8px;box-shadow:0 12px 28px rgba(20,55,45,.08)}
 .card:hover{border-color:var(--border-hover)}
 .card.full{grid-column:1/-1}
 .card-title{font-family:'Inter',system-ui,sans-serif;font-weight:600;font-size:15px;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:8px}
@@ -207,6 +207,15 @@ body.theme-clear .audit-card{background:rgba(255,255,255,.65)}
 /* RAW TABLE */
 .raw-table-wrap{overflow-x:auto;max-height:620px;overflow-y:auto;background:rgba(4,12,10,.38);border-top:1px solid rgba(159,182,168,.16)}
 .raw-table-wrap table.dt{font-size:10.5px}
+body.theme-clear .raw-table-wrap{background:rgba(255,255,255,.28)}
+body.theme-clear table.dt th{background:rgba(218,238,227,.88);color:#244036;border-bottom-color:rgba(63,111,97,.25)}
+body.theme-clear table.dt td{color:#173128;border-bottom-color:rgba(63,111,97,.16)}
+body.theme-clear table.dt tr:nth-child(even) td{background:rgba(255,255,255,.18)}
+body.theme-clear .source-section{background:rgba(255,255,255,.30);border-color:rgba(63,111,97,.25)}
+body.theme-clear .source-section summary{background:rgba(226,242,234,.78);color:#10221b}
+body.theme-clear .dt tr.source-total td{background:rgba(122,165,148,.28);color:#10221b}
+body.theme-clear .dt tr.source-subtotal td{background:rgba(122,165,148,.18);color:#10221b}
+body.theme-clear .dt tr.source-child td:first-child,body.theme-clear .dt tr.source-grandchild td:first-child{color:#314d43}
 .source-section{border:1px solid rgba(159,182,168,.24);border-radius:9px;background:rgba(8,20,16,.52);margin:12px 0;overflow:hidden}
 .source-section summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:14px;font-weight:750;color:var(--text);background:rgba(9,28,24,.92);border-left:3px solid var(--accent-dim);display:flex;align-items:center;justify-content:space-between;gap:12px}
 .source-section summary::-webkit-details-marker{display:none}
@@ -238,6 +247,12 @@ body.theme-clear .audit-card{background:rgba(255,255,255,.65)}
 .ckp-chart{min-height:300px;border:1px solid rgba(154,171,141,.14);border-radius:8px;padding:10px;background:rgba(5,10,8,.18)}
 .ckp-chart canvas{width:100%;height:260px}
 .ckp-empty{font-size:12px;color:var(--text-dim);padding:12px;border:1px dashed var(--border);border-radius:8px}
+.ckp-card .speaker-block{margin:0 16px 16px;max-height:260px}
+.ckp-card .speaker-head{padding:10px 12px}
+.ckp-card .speaker-body{max-height:198px;overflow:auto}
+.ckp-card .speaker-body textarea{min-height:86px;max-height:132px;resize:vertical}
+.ckp-card .speaker-actions{position:sticky;bottom:0;background:rgba(4,12,10,.86);backdrop-filter:blur(10px)}
+body.theme-clear .ckp-card .speaker-actions{background:rgba(238,247,242,.88)}
 /* PAYMENT CALENDAR */
 .pay-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(15,25,15,.4);margin-bottom:6px;border-left:3px solid var(--border)}
 .pay-row.pay-out{border-left-color:var(--red)}
@@ -443,7 +458,12 @@ function monthIndex(m){
   if(!s)return -1;
   const num=parseInt(s,10);
   if(Number.isFinite(num)&&num>=1&&num<=12)return num-1;
-  return ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'].findIndex(x=>s.startsWith(x));
+  const ru=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const en=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  let idx=ru.findIndex(x=>s.startsWith(x));
+  if(idx>=0)return idx;
+  idx=en.findIndex(x=>s.startsWith(x));
+  return idx;
 }
 function monthOrder(months){
   const seen=new Set(),items=[];
@@ -1591,7 +1611,8 @@ function ckpBlockHtml(b,bi){
       <div class="ckp-table">${simpleTable(['Критерий','Последний месяц','Среднее','Тренд'],tableRows)}</div>
       <div class="ckp-chart">${chartRows.length?`<canvas id="c-ckp-${bi}"></canvas>${chartCaption(`<b>${esc(b.shortTitle)}:</b> график показывает самые информативные числовые критерии за последний месяц; полная расшифровка слева.`)}`:`<div class="ckp-empty">Для графика нет устойчивых числовых рядов, значения показаны в таблице.</div>`}</div>
     </div>
-  </details>${speakerBlock('ckp_'+bi,'Заметки докладчика к '+b.title,'Пояснить статус ЦКП, ключевые показатели и следующий шаг.')}`;
+    ${speakerBlock('ckp_'+bi,'Заметки докладчика к '+b.title,'Пояснить статус ЦКП, ключевые показатели и следующий шаг.')}
+  </details>`;
 }
 function ckpChartRows(rows){
   return (rows||[])
@@ -1973,7 +1994,7 @@ function isMonthHeaderRow(row){
   return monthHits>=2||numericMonthHits>=4;
 }
 function isMonthToken(v){
-  return /^(янв|январ|фев|феврал|мар|март|апр|апрел|май|июн|июл|авг|август|сен|сентябр|окт|октябр|ноя|ноябр|дек|декабр)/i.test(String(v||''));
+  return /^(янв|январ|фев|феврал|мар|март|апр|апрел|май|июн|июл|авг|август|сен|сентябр|окт|октябр|ноя|ноябр|дек|декабр|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(String(v||''));
 }
 function sourceSectionHtml(section,id,opts={}){
   const labelIdx=sourceSectionLabelIndex(section.rows);
@@ -1996,6 +2017,18 @@ function sourceDisplayColumns(header,rows,labelIdx,id,opts={}){
   if(!rawIdxs.length)return[];
   const idText=String(id||'').toLowerCase();
   const maxCols=opts.maxCols||(/balance|cf_source|pay|traffic|projects|ludens|pnl_source|combo|consol/.test(idText)?80:24);
+  if(/pnl_source/.test(idText)){
+    const monthCols=rawIdxs.filter(ci=>{
+      const mi=monthIndex(h[ci]);
+      return mi>=0&&mi>=pFrom&&mi<=pTo&&!isMostlyEmptyColumn(rows,ci);
+    });
+    const totalIdx=rawIdxs.find(ci=>/^(итого|total):?$/i.test(String(h[ci]??'').trim()));
+    const limitCols=rawIdxs.filter(ci=>/%|лимит|limit|fact|факт|year|month/i.test(String(h[ci]??'').trim())&&!isMostlyEmptyColumn(rows,ci));
+    const cols=[...monthCols];
+    if(totalIdx>=0)cols.push(totalIdx);
+    limitCols.forEach(ci=>{if(!cols.includes(ci))cols.push(ci)});
+    if(cols.length)return cols.slice(0,maxCols);
+  }
   const monthLike=rawIdxs.filter(ci=>isMonthToken(h[ci])||/^(1|2|3|4|5|6|7|8|9|10|11|12)$/.test(String(h[ci]??'').trim())||/^итого$/i.test(String(h[ci]??'').trim()));
   if(monthLike.length>=3){
     const cols=rawIdxs.filter(ci=>String(h[ci]??'').trim()||!isMostlyEmptyColumn(rows,ci));
@@ -2443,6 +2476,7 @@ function renderOverview(){
   const lastDE=periodEnd(D.de_ratio),debt=debtAt(i);
   const overviewCostGroups=pnlCostGroups();
   const trT=sm(overviewCostGroups.traffic),inT=sm(D.indirect),intT=sm(D.interest),other=Math.max(0,sm(D.var_costs)-trT);
+  const trM=Math.abs(metricMonth(overviewCostGroups.traffic,i)),inM=Math.abs(metricMonth(D.indirect,i)),intM=Math.abs(metricMonth(D.interest,i)),otherM=Math.max(0,Math.abs(metricMonth(D.var_costs,i))-trM);
   document.getElementById('p-overview').innerHTML=`
 ${dsBadge(dataSource)}
 <div class="kpi-row" data-reveal>
@@ -2456,20 +2490,16 @@ ${dsBadge(dataSource)}
 </div>
 <div class="e2-row">
   <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--accent)"></span>Выручка и рент. ЧП</div><div class="cw"><canvas id="c-rev"></canvas></div>${chartCaption(`<b>Показывает связь выручки и чистой маржи:</b> пик выручки в ${bestMonth(D.revenue)}, последняя чистая маржа ${F.pct(npPct)}.`)}</div>
-  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--orange)"></span>Структура расходов</div><div class="cw"><canvas id="c-costs"></canvas></div>${chartCaption(`<b>Показывает, что сильнее всего давит на деньги:</b> трафик ${F.$(trT)}, косвенные ${F.$(inT)}, проценты ${F.$(intT)}.`)}</div>
-  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Рентабельность из источника</div><div class="cw"><canvas id="c-marg"></canvas></div>${chartCaption(`<b>Показывает качество прибыли:</b> в последнем месяце маржинальная ${F.pct(margPct)}, операционная ${F.pct(opPct)}, ЧП ${F.pct(npPct)}.`)}</div>
+  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--orange)"></span>Структура расходов: месяц / период</div><div class="cw"><canvas id="c-costs"></canvas></div>${chartCaption(`<b>Сравнивает доли расходов:</b> внутреннее кольцо — ${esc(D.months[i]||'месяц')}, внешнее — весь выбранный период.`)}</div>
+  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Поступления / выбытия / NCF</div><div class="cw"><canvas id="c-overview-cash"></canvas></div>${chartCaption(`<b>Показывает движение денег:</b> поступления, выбытия и Total NCF; остаток на конец периода ${F.$(periodEnd(D.cash))}.`)}</div>
   ${speakerBlock('overview_financials','Заметки докладчика к обзору','Сначала объяснить период, затем выручку, прибыль, маржинальности из строк источника, D/E и cash на конец выбранного периода.')}
-</div>
-<div class="grid2">
-  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--red)"></span>Выручка по направлениям</div><div class="cw"><canvas id="c-dirs"></canvas></div>${chartCaption(`<b>Показывает вклад направлений:</b> основной вклад за период — Core ${F.$(sm(D.rev_core))}, Influence ${F.$(sm(D.rev_influence))}.`)}</div>
-  <div class="card" data-reveal><div class="card-title"><span class="dot" style="background:var(--purple)"></span>Total NCF / Cash</div><div class="cw"><canvas id="c-overview-cash"></canvas></div>${chartCaption(`<b>Показывает движение денег:</b> Total NCF за период ${F.$(sm(totalNcfSeries()))}, cash на конец ${F.$(periodEnd(D.cash))}.`)}</div>
 </div>`;
   const m=gm();
   mc('c-rev',{type:'bar',data:{labels:m,datasets:[{label:'Выручка',data:sl(D.revenue),backgroundColor:'rgba(34,211,238,.35)',borderRadius:5},{label:'Маржа ЧП %',data:sl(D.np_margin_pct),type:'line',borderColor:'rgba(52,211,153,.8)',yAxisID:'y1',tension:.25}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}},y1:{position:'right',grid:{display:false},title:{display:true,text:'%'}}}}});
-  mc('c-costs',{type:'doughnut',data:{labels:['Трафик '+F.$(trT),'Прочие перем. '+F.$(other),'Косвенные '+F.$(inT),'Проценты '+F.$(intT)],datasets:[{data:[trT,other,inT,intT],backgroundColor:['rgba(34,211,238,.5)','rgba(251,146,60,.35)','rgba(167,139,250,.35)','rgba(248,113,113,.35)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}}},cutout:'60%'}});
-  mc('c-marg',{type:'bar',data:{labels:m,datasets:[{label:'Маржинальная',data:sl(D.margin_pct),backgroundColor:'rgba(34,211,238,.35)'},{label:'Операционная',data:sl(D.op_margin_pct),backgroundColor:'rgba(52,211,153,.35)'},{label:'Чистая',data:sl(D.np_margin_pct),backgroundColor:'rgba(251,146,60,.35)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'%'}}}}});
-  mc('c-dirs',{type:'bar',data:{labels:m,datasets:[{label:'Core',data:sl(D.rev_core),backgroundColor:'rgba(34,211,238,.4)'},{label:'Influence',data:sl(D.rev_influence),backgroundColor:'rgba(167,139,250,.4)'},{label:'Streams',data:sl(D.rev_streams),backgroundColor:'rgba(52,211,153,.3)'},{label:'Mannequin',data:sl(D.rev_mannequin),backgroundColor:'rgba(215,230,190,.2)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true}}}});
-  mc('c-overview-cash',{type:'line',data:{labels:m,datasets:[{label:'Total NCF',data:sl(totalNcfSeries()),borderColor:'rgba(251,191,36,.8)',tension:.25},{label:'Cash end',data:sl(D.cash),borderColor:'rgba(34,211,238,.8)',tension:.25}]},options:{responsive:true,maintainAspectRatio:false}});
+  mc('c-costs',{type:'doughnut',data:{labels:['Трафик','Прочие перем.','Косвенные','Проценты'],datasets:[{label:'Период',data:[trT,other,inT,intT],backgroundColor:['rgba(34,211,238,.52)','rgba(251,146,60,.40)','rgba(167,139,250,.40)','rgba(248,113,113,.40)'],borderWidth:0},{label:D.months[i]||'Месяц',data:[trM,otherM,inM,intM],backgroundColor:['rgba(34,211,238,.80)','rgba(251,146,60,.68)','rgba(167,139,250,.68)','rgba(248,113,113,.68)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}},tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label}: ${ctx.label} ${F.$(ctx.raw)}`}}},cutout:'46%'}});
+  const flowIn=makeSeries(k=>Math.max(0,+D.ncf_op[k]||0)+Math.max(0,+D.ncf_inv[k]||0)+Math.max(0,+D.ncf_fin[k]||0));
+  const flowOut=makeSeries(k=>Math.min(0,+D.ncf_op[k]||0)+Math.min(0,+D.ncf_inv[k]||0)+Math.min(0,+D.ncf_fin[k]||0));
+  mc('c-overview-cash',{type:'bar',data:{labels:m,datasets:[{label:'Поступления',data:sl(flowIn),backgroundColor:'rgba(52,211,153,.42)',borderRadius:4},{label:'Выбытия',data:sl(flowOut),backgroundColor:'rgba(248,113,113,.42)',borderRadius:4},{label:'Total NCF',data:sl(totalNcfSeries()),type:'line',borderColor:'rgba(251,191,36,.85)',tension:.25,yAxisID:'y'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'$'}}}}});
 }
 function renderPnL(){
   const m=gm(),revS=sm(D.revenue),vcS=sm(D.var_costs),opS=sm(D.op_profit),npS=sm(D.net_profit);

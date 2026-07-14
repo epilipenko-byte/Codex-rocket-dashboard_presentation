@@ -220,10 +220,23 @@ body.theme-clear .audit-card{background:rgba(255,255,255,.65)}
 .dt tr.source-hidden{display:none}
 .dt .source-toggle{display:inline-flex;width:17px;height:17px;align-items:center;justify-content:center;border:1px solid rgba(34,211,238,.24);border-radius:5px;margin-right:7px;cursor:pointer;color:var(--accent);font-size:11px;line-height:1;background:rgba(8,18,20,.45)}
 .dt .source-toggle.is-open{background:rgba(34,211,238,.12)}
-.ckp-block{display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(260px,.9fr);gap:14px;margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:8px;background:rgba(15,25,15,.36)}
-.ckp-text h3{margin-bottom:10px}
-.ckp-chart{min-height:220px}
-.ckp-chart canvas{width:100%;height:220px}
+.ckp-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0 18px}
+.ckp-chip{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:rgba(15,25,15,.38);color:var(--text);text-decoration:none}
+.ckp-chip b{font-size:12px;line-height:1.2}.ckp-chip span{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.ckp-card{margin:14px 0;border:1px solid var(--border);border-radius:8px;background:rgba(15,25,15,.38);overflow:hidden}
+.ckp-card>summary{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none}
+.ckp-card>summary::-webkit-details-marker{display:none}
+.ckp-card>summary:after{content:'+';justify-self:end;color:var(--accent);font-weight:800}
+.ckp-card[open]>summary:after{content:'-'}
+.ckp-card h3{margin:0;font-size:16px;line-height:1.25}
+.ckp-summary-meta{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em}
+.ckp-snapshot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.ckp-pill{border:1px solid rgba(154,171,141,.24);border-radius:999px;padding:5px 8px;font-size:11px;color:var(--text-muted);background:rgba(5,10,8,.22)}
+.ckp-body{display:grid;grid-template-columns:minmax(340px,1.05fr) minmax(360px,.95fr);gap:16px;padding:0 16px 16px}
+.ckp-table .dt th,.ckp-table .dt td{font-size:11px;padding:8px 10px}
+.ckp-chart{min-height:300px;border:1px solid rgba(154,171,141,.14);border-radius:8px;padding:10px;background:rgba(5,10,8,.18)}
+.ckp-chart canvas{width:100%;height:260px}
+.ckp-empty{font-size:12px;color:var(--text-dim);padding:12px;border:1px dashed var(--border);border-radius:8px}
 /* PAYMENT CALENDAR */
 .pay-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(15,25,15,.4);margin-bottom:6px;border-left:3px solid var(--border)}
 .pay-row.pay-out{border-left-color:var(--red)}
@@ -251,7 +264,7 @@ body.theme-clear .audit-card{background:rgba(255,255,255,.65)}
 [data-reveal].revealed{opacity:1;transform:translateY(0)}
 /* RESPONSIVE */
 @media(max-width:900px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.content{padding:14px 16px 40px}.hdr{padding:12px 16px 8px}.kpi-row{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.e2-row,.tech-grid,.ckp-block{grid-template-columns:1fr}}
+@media(max-width:900px){.e2-row,.tech-grid,.ckp-body,.ckp-card>summary{grid-template-columns:1fr}.ckp-snapshot{justify-content:flex-start}}
 @media(max-width:500px){.kpi-row{grid-template-columns:1fr 1fr}.tabs{padding:0 12px}.hdr h1{font-size:16px}}
 </style>
 </head>
@@ -1498,7 +1511,8 @@ function renderCKP(){
     const audit=ckpAudit(blocks,D.ckp_data);
     html+=`<p class="tech-note">Источник: ${esc(audit.source)}. Найдено блоков ЦКП: ${audit.blocks}; критериев: ${audit.criteria}; числовых рядов для графиков: ${audit.series}. Последний месяц: ${esc(D.months[li()]||'')}.</p>`;
     if(blocks.length){
-      html+=blocks.map((b,bi)=>`<div class="ckp-block"><div class="ckp-text"><h3>${esc(b.title)}</h3>${simpleTable(['Критерий','Последний месяц','Среднее за период'],b.rows.slice(0,12).map(r=>[r.label,r.display,r.avgDisplay]))}</div><div class="ckp-chart"><canvas id="c-ckp-${bi}"></canvas>${chartCaption(`<b>Показывает критерии ${esc(b.shortTitle)}:</b> линии строятся по числовым значениям выбранного периода.`)}</div></div>${speakerBlock('ckp_'+bi,'Заметки докладчика к '+b.title,'Пояснить статус ЦКП, ключевые показатели и следующий шаг.')}`).join('');
+      html+=ckpNav(blocks);
+      html+=blocks.map((b,bi)=>ckpBlockHtml(b,bi)).join('');
       html+=`<div class="asec" data-reveal><h3>Полная раскрываемая таблица ЦКП</h3>${rawTableToExpandable(D.ckp_data,'ckp_full_tree',[['период','period']])}</div>`;
     }else{
       html+=rawTableToExpandable(D.ckp_data,'ckp_tbl',[['период','period']]);
@@ -1520,8 +1534,9 @@ function renderCKP(){
     html+=`</div><div class="card" style="max-width:400px;margin-top:16px" data-reveal><div class="card-title"><span class="dot" style="background:var(--green)"></span>Статусы задач ЦКП</div><div class="cw short"><canvas id="c-ckp-status"></canvas></div></div>`;
     document.getElementById('p-ckp').innerHTML=html;
     blocks.forEach((b,bi)=>{
-      const rows=b.rows.filter(r=>usefulSeries(r.values)).slice(0,5);
-      mc('c-ckp-'+bi,{type:'line',data:{labels:gm(),datasets:rows.map((r,ri)=>({label:r.label,data:sl(r.values),borderColor:['rgba(34,211,238,.8)','rgba(52,211,153,.75)','rgba(251,146,60,.75)','rgba(167,139,250,.75)','rgba(248,113,113,.75)'][ri%5],backgroundColor:'rgba(34,211,238,.08)',tension:.25,pointRadius:3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:8},boxWidth:8}}},scales:{x:{ticks:{maxRotation:0}},y:{title:{display:true,text:'значение'}}}}});
+      const rows=ckpChartRows(b.rows).slice(0,4);
+      if(!rows.length)return;
+      mc('c-ckp-'+bi,{type:'bar',data:{labels:rows.map(r=>shortLabel(r.label,34)),datasets:[{label:`${D.months[li()]||'последний месяц'}`,data:rows.map(r=>Math.abs(+r.lastValue||0)),backgroundColor:rows.map((r,ri)=>['rgba(34,211,238,.48)','rgba(52,211,153,.48)','rgba(251,146,60,.48)','rgba(167,139,250,.48)'][ri%4]),borderColor:rows.map((r,ri)=>['rgba(34,211,238,.9)','rgba(52,211,153,.9)','rgba(251,146,60,.9)','rgba(167,139,250,.9)'][ri%4]),borderWidth:1.5,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>`${rows[ctx.dataIndex]?.display||ctx.formattedValue}`}},valueLabels:{display:true,formatter:(v,ctx)=>rows[ctx.dataIndex]?.display||F.n(v)}},scales:{x:{ticks:{callback:chartTick},title:{display:true,text:'последний месяц, абсолютная величина'}},y:{ticks:{font:{size:10}}}}}});
     });
     mc('c-ckp-status',{type:'doughnut',data:{labels:['Выполнено','В работе','Просрочено','Не начато'],datasets:[{data:[statuses.done,statuses.wip,statuses.late,statuses.todo],backgroundColor:['rgba(52,211,153,.5)','rgba(251,146,60,.5)','rgba(248,113,113,.5)','rgba(100,116,139,.3)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10}}}},cutout:'50%'}});
   } else {
@@ -1538,6 +1553,52 @@ function ckpAudit(blocks,data){
     series:(blocks||[]).reduce((s,b)=>s+(b.rows||[]).filter(r=>usefulSeries(r.values)).length,0),
     sourceRows:Array.isArray(data)?data.length:0
   };
+}
+function ckpNav(blocks){
+  return `<div class="ckp-nav">${blocks.map((b,bi)=>`<a class="ckp-chip" href="#ckp-${bi}"><b>${esc(b.shortTitle||('ЦКП '+(bi+1)))}</b><span>${(b.rows||[]).length} критериев</span></a>`).join('')}</div>`;
+}
+function ckpBlockHtml(b,bi){
+  const rows=(b.rows||[]).slice(0,18);
+  const chartRows=ckpChartRows(b.rows).slice(0,4);
+  const snapshot=rows.slice(0,3).map(r=>`<span class="ckp-pill">${esc(shortLabel(r.label,22))}: ${esc(r.display)}</span>`).join('');
+  const tableRows=rows.map(r=>[r.label,r.display,r.avgDisplay,trendText(r.values)]);
+  const open=bi===0?' open':'';
+  return `<details class="ckp-card" id="ckp-${bi}"${open}>
+    <summary>
+      <h3>${esc(b.title)}</h3>
+      <div class="ckp-summary-meta">${rows.length} критериев · график ${chartRows.length} ряда</div>
+      <div class="ckp-snapshot">${snapshot}</div>
+    </summary>
+    <div class="ckp-body">
+      <div class="ckp-table">${simpleTable(['Критерий','Последний месяц','Среднее','Тренд'],tableRows)}</div>
+      <div class="ckp-chart">${chartRows.length?`<canvas id="c-ckp-${bi}"></canvas>${chartCaption(`<b>${esc(b.shortTitle)}:</b> график показывает самые информативные числовые критерии за последний месяц; полная расшифровка слева.`)}`:`<div class="ckp-empty">Для графика нет устойчивых числовых рядов, значения показаны в таблице.</div>`}</div>
+    </div>
+  </details>${speakerBlock('ckp_'+bi,'Заметки докладчика к '+b.title,'Пояснить статус ЦКП, ключевые показатели и следующий шаг.')}`;
+}
+function ckpChartRows(rows){
+  return (rows||[])
+    .map(r=>({...r,lastValue:+(r.values||[])[li()]||0,spread:seriesSpread(sl(r.values||[]))}))
+    .filter(r=>usefulSeries(r.values)&&Number.isFinite(r.lastValue)&&Math.abs(r.lastValue)>0.000001)
+    .sort((a,b)=>Math.abs(b.lastValue)-Math.abs(a.lastValue)||b.spread-a.spread);
+}
+function seriesSpread(values){
+  const nums=(values||[]).map(v=>+v).filter(Number.isFinite);
+  if(!nums.length)return 0;
+  return Math.max(...nums)-Math.min(...nums);
+}
+function trendText(values){
+  const s=sl(values||[]).map(v=>+v||0);
+  if(s.length<2)return 'нет сравнения';
+  const first=s.find(v=>Math.abs(v)>0.000001);
+  const last=s[s.length-1]||0;
+  if(first===undefined)return 'нет динамики';
+  const diff=last-first;
+  if(Math.abs(diff)<0.000001)return 'без изменений';
+  return `${diff>0?'↑':'↓'} ${F.n(Math.round(Math.abs(diff)))}`;
+}
+function shortLabel(text,max=30){
+  const s=String(text||'').replace(/\s+/g,' ').trim();
+  return s.length>max?s.slice(0,max-1).trim()+'…':s;
 }
 function ckpBlocks(data){
   const periodIdx=(data||[]).findIndex(r=>(r||[]).some(c=>/период|period/i.test(String(c||''))));
